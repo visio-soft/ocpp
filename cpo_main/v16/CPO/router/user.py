@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status, Depends
-from v16.CPO import schemas, oauth2, hashing
+from v16.CPO import schemas, hashing
 from database.database import get_db
 from database import models
 from sqlalchemy.orm import Session

@@ -6,7 +6,7 @@ from ocpp.routing import on, after
 from ocpp.v16 import ChargePoint as cp
 from ocpp.v16 import call, call_result
 from ocpp.v16.enums import *
-from v16.CPO import status_db
+from v16.CPO import crud
 
 
 
@@ -36,7 +36,7 @@ class ChargePoint(cp):
     charge_point_serial_number: str = None, firmware_version: str = None, charge_box_serial_number: str = None, iccid: str = None,
     imsi: str = None, meter_serial_number: str = None, meter_type: str = None):
         charge_point_id = self.id
-        return await status_db.boot_notification_db(
+        return await crud.boot_notification_db(
             charge_point_id,
             charge_point_vendor, 
             charge_point_model, 
@@ -63,7 +63,7 @@ class ChargePoint(cp):
     @after(Action.Heartbeat)
     async def after_heartbeat(self):
         timestamp = datetime.now()
-        return await status_db.heartbeat_db(self.id, timestamp)
+        return await crud.heartbeat_db(self.id, timestamp)
 
     @on(Action.Authorize)
     def on_authorize(self, id_tag: str, **kwargs):
@@ -82,7 +82,8 @@ class ChargePoint(cp):
     """Implemented"""
 
     @on(Action.StatusNotification)
-    def on_status_notification(self, *args, **kwargs):
+    def on_status_notification(self, connector_id: int, error_code: str, status: str, timestamp: str = None, info: str = None,
+    vendor_id: str = None, vendor_error_code: str = None):
         print("Status Update request recieved")
         return call_result.StatusNotificationPayload()
 
@@ -90,7 +91,7 @@ class ChargePoint(cp):
     async def after_status_notification(self, connector_id: int, error_code: str, status: str, timestamp: str = None, info: str = None,
     vendor_id: str = None, vendor_error_code: str = None):
         timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f')
-        return await status_db.status_db(
+        return await crud.status_db(
             self.id,
             connector_id, 
             error_code,
@@ -113,9 +114,9 @@ class ChargePoint(cp):
         )
 
     @after(Action.StartTransaction)
-    async def after_start_transaction(self, transaction_id: int, connector_id: int, id_tag: str, meter_start: int, timestamp: str, reservation_id: int= None):
+    async def after_start_transaction(self, connector_id: int, id_tag: str, meter_start: int, timestamp: str, reservation_id: int= None):
         timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f')
-        await status_db.transaction_db(self.id, transaction_id, connector_id, id_tag, meter_start, timestamp, reservation_id)
+        await crud.transaction_db(self.id, connector_id, id_tag, meter_start, timestamp, reservation_id)
 
     """Implemented"""
 
@@ -131,7 +132,7 @@ class ChargePoint(cp):
     @after(Action.StopTransaction)
     async def after_stop_transaction(self, transaction_id: int, id_tag: str, meter_stop: int, timestamp: str, 
     reason: str = None, transaction_data: list = None):
-        await status_db.stop_transaction_db(self.id, transaction_id, id_tag, meter_stop, timestamp, reason, transaction_data)
+        await crud.stop_transaction_db(self.id, transaction_id, id_tag, meter_stop, timestamp, reason, transaction_data)
 
     """Implemented"""
 
@@ -143,7 +144,7 @@ class ChargePoint(cp):
 
     @after(Action.MeterValues)
     async def after_meter_values(self, connector_id: int, meter_value: list, transaction_id: int = None):
-        return await status_db.meter_value_db(self.id, connector_id, meter_value, transaction_id)
+        return await crud.meter_value_db(self.id, connector_id, meter_value, transaction_id)
 
     """Implemented"""
 

@@ -22,9 +22,34 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
 
-class ChargeSession(BaseModel):
-    username: str
-    password: str
+class ChargePointSessions(BaseModel):
+    transaction_id: int
+    charge_point_id: Optional[str] = None
+    connector_id: Optional[int] = None
+    id_tag: Optional[str] = None
+    meter_start: Optional[int] = None
+    timestamp: Optional[datetime] = None
+    reservation_id: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+class MeterValues(BaseModel):
+    id: int
+    transaction_id: int
+    charge_point_id: str
+    connector_id: Optional[int]
+    timestamp: datetime
+    measurand: str
+    value: str
+    context: Optional[str]
+    format: Optional[str]
+    phase: Optional[str]
+    location: Optional[str]
+    unit: Optional[str]
+
+    class Config:
+        orm_mode = True
 
 class ConfigurationKey(str, Enum):
     """
@@ -96,93 +121,27 @@ class TokenRefresh(BaseModel):
     token: Optional[str] = None
     password: Optional[str] = None
 
-class UserCreate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[str] = None
-    mobile: Optional[str] = None
-
-class UserStatus(str, Enum):
-    new = 'New'
-    valid = 'Valid'
-    locked = 'Locked'
-
-class UserView(BaseModel):
-    id: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[str] = None
-    mobile: Optional[str] = None
-    user_status: UserStatus
-
-class SessionType(str, Enum):
-    one_phase = 'OnePhase'
-    three_phase = 'ThreePhase'
-    schuko = 'Shuko'
-
-class ConnectorStatusType(str, Enum):
-    available = 'Available'
-    charging = 'Charging'
-    connected = 'Connected'
-    error = 'Error'
-    unknown = 'Unknown'
-
-class Phase(str, Enum):
-    L1 = 'L1'
-    L2 = 'L2'
-    L3 = 'L3'
-
-class Measurement(BaseModel):
-    phase: Phase
-    current: float
-    voltage: float
-
-class ConnectorStatus(BaseModel):
-    charge_point_id: Optional[str] = None
-    connector_id: int
-    total_consumption_kwh: float
-    session_type: SessionType
-    status: ConnectorStatusType
-    measurement: Measurement
-    start_time: datetime
-    end_time: datetime
-    session_id: Optional[int] = None
-
-class ChargePointStatusType(str, Enum):
-    online = 'Online'
-    offline = 'Offline'
 
 class ChargePointStatus(BaseModel):
-    id: Optional[str] = None
-    status: ChargePointStatusType
-    connector_status: ConnectorStatus
-
-class ConnectorFunctionType(str, Enum):
-    charger = 'charger'
-    schuko = 'schuko'
-
-class Connector(BaseModel):
-    charge_point_id: Optional[str] = None
+    charge_point_id: str
     connector_id: int
-    type: ConnectorFunctionType
+    status: str
+    error_code: str
+    status_timestamp: datetime
+    info: Optional[str] = None
+    vendor_id: Optional[str] = None
+    vendor_error_code: Optional[str] = None
 
-class DimmerValue(str, Enum):
-    off = 'off'
-    low = 'low'
-    medium = 'medium'
-    high = 'high'
+    class Config:
+        orm_mode = True
 
-class ChargePointConfiguration(BaseModel):
-    id: Optional[str] = None
-    dimmer: DimmerValue
-    down_light: Optional[bool] = None
-    max_current: Optional[float] = None
+
 
 class ChargePoint(BaseModel):
     id: int
     charge_point_id: str
     charge_point_vendor: str
-    charge_point_model:Optional[str] = None
+    charge_point_model: str
     charge_point_serial_number: Optional[str] = None
     firmware_version: Optional[str] = None
     charge_box_serial_number: Optional[str] = None
@@ -191,88 +150,38 @@ class ChargePoint(BaseModel):
     meter_serial_number: Optional[str] = None
     meter_type: Optional[str] = None
     heartbeat: Optional[datetime] = None
-
-
-
-class OnOffMode(str, Enum):
-    on = 'on'
-    off = 'off'
-    schedule = 'schedule'
-
-class ConnectorConfiguration(BaseModel):
-    charge_point_id: Optional[str] = None
-    connector_id: int
-    max_current: Optional[float] = None
-    mode = OnOffMode
-    cable_lock = bool
-
-class ChargePointRegistrationInfo(BaseModel):
-    charge_point_id: constr(min_length=1)
-    password: constr(min_length=1)
-    charge_point_name: Optional[str] = None
-
-class ChargePointAuth(BaseModel):
-    charge_point_id: constr(min_length=1)
-    password: constr(min_length=1)
-
-class ChargingSession(BaseModel):
-    id: int
-    charge_point_id: Optional[str] = None
-    connector_id: int
-    organisation_id: Optional[str] = None
-    session_type: str
-    start_time: datetime
-    end_time: datetime
-    external_transaction_id: Optional[str] = None
-    total_consumption_kwh: float
-    external_id: Optional[str] = None
-
-class ViewConnectorCofiguration(BaseModel):
-    charge_point_id: Optional[str] = None
-    connector_id: int
-    max_current: Optional[float] = None
-    mode: OnOffMode
-    cable_lock: bool
-    intallation_current: int
-
-class CreateConnectorConfiguration(BaseModel):
-    charge_point_id: Optional[str] = None
-    connector_id: int
-    max_current: Optional[float] = None
-    mode: OnOffMode
-    cable_lock: bool
-
-class GetSchedule(BaseModel):
-    connector_id: int
-    duration: int
-    charging_rate_unit: ChargingRateUnitType
-
-class Schedule(BaseModel):
-    id: int
-    charge_point_id: Optional[str] = None
-    name: Optional[str] = None
-    active: bool
-    start_hours: int
-    start_minutes: int
-    end_hours: int
-    end_minutes: int
-    time_zone: Optional[str] = None
-    monday: bool
-    tuesday: bool
-    wednesday: bool
-    thursday: bool
-    friday: bool
-    saturday: bool
-    sunday: bool
-    connector_id_list: Optional[str] = None
-
-class Organisation(BaseModel):
-    id: str
-    name: Optional[str] = None
-    description: Optional[str] = None
+    
+    class Config:
+        orm_mode = True
 
 class Trigger(str, Enum):
     status_notification = "StatusNotification"
     meter_values = "MeterValues"
     diagnostics_status = "DiagnosticsStatusNotification"
     firmware_status = "FirmwareStatusNotification"
+
+# class IdTagStatus(str, Enum):
+#     accepted = "Accepted"
+#     blocked = "Blocked"
+#     expired = "Expired"
+#     invalid ="Invalid"
+#     concurrent_tx = "ConcurrentTx"
+
+# class UpdateType(str, Enum):
+#     full = "Full"
+#     differential = "Differential"
+
+# class IdTagInfo(BaseModel):
+#     expiry_date: datetime
+#     parent_id_tag: str
+#     status: IdTagStatus
+
+# class LocalAuthorizationList(BaseModel):
+#     id_tag: str
+#     id_tag_info: IdTagInfo
+
+# class LocalList(BaseModel):
+#     charge_point_id: str
+#     list_version: int
+#     local_authorization_list: LocalAuthorizationList
+#     update_type: UpdateType

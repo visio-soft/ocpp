@@ -215,12 +215,13 @@ class ChargePoint(cp):
                     transaction_id=1234
         ))
 
-    async def send_status_notification(self, connector_id: int = None, **kwargs):
+    async def send_status_notification(self, connector_id: int, error_code: ChargePointErrorCode = None, status: ChargePointStatus = None, timestamp: str = None,
+        info: str = None, vendor_id: str = None, vendor_error_code: str = None):
         return await self.call(call.StatusNotificationPayload(
             connector_id=connector_id,
             error_code=ChargePointErrorCode.no_error,
             status=ChargePointStatus.available,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now().isoformat(),
             info="Charge Point is available for use",
             vendor_id="Drifter",
             vendor_error_code="Operational"
