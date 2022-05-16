@@ -3,7 +3,7 @@ import logging
 from urllib import response
 
 import websockets
-from ocpp.routing import on
+from ocpp.routing import on, after
 from ocpp.v201 import ChargePoint as cp
 from ocpp.v201 import call, call_result
 from ocpp.v201.enums import *
@@ -40,7 +40,13 @@ class ChargePoint(cp):
     async def send_boot_notification(self):
         request = call.BootNotificationPayload(
             charging_station={'model':"Drifter",
-            'vendor_name':'Drifter'},
+                'vendor_name':'Drifter',
+                'serial_number': '1234Drifter',
+                'firmware_version': 'v201',
+                'modem': {
+                    'iccid': '5G',
+                    'imsi': 'Mobile'
+                }},
             reason="PowerUp"
         )
 
@@ -75,11 +81,17 @@ class ChargePoint(cp):
         )
 
     @on(Action.RequestStartTransaction)
-    def on_start_remote(self, id_token, remote_start_id, evse_id):
+    async def on_start_remote(self, id_token, remote_start_id, evse_id):
         return call_result.RequestStartTransactionPayload(
             status=RequestStartStopStatusType.accepted,
+            status_info={"reason_code": "User request start of transaction"},
             transaction_id="ABC123"
         )
+
+    @after(Action.RequestStartTransaction)
+    async def on_start_remote(self, id_token, remote_start_id, evse_id):
+        await self.transaction_event(id_token, remote_start_id, evse_id)
+        return
 
     @on(Action.RequestStopTransaction)
     def on_stop_remote(self, transaction_id):
@@ -173,12 +185,14 @@ class ChargePoint(cp):
         request = call.TransactionEventPayload(
             event_type="Started",
             timestamp=datetime.utcnow().isoformat(),
-            trigger_reason="CablePlugedIn",
+            trigger_reason="RemoteStart",
             seq_no=1,
             
             transaction_info=
                 {"transaction_id":"ABC123",
-                "charging_state":"EVConnected"},
+                "charging_state":"EVConnected",
+                "time_spent_charging": 0,
+                "remote_start_id": "ABC123"},
             evse=
                 {"id": 1,
                 "connectorId": 1},
@@ -205,7 +219,7 @@ class ChargePoint(cp):
 
 async def main():
     async with websockets.connect(
-        'ws://localhost:8000/v201/api/v201/CP',
+        'ws://localhost:8000/ocpp/201/api/v201/CP',
         subprotocols=["ocpp2.0.1"]
     ) as ws:
 
