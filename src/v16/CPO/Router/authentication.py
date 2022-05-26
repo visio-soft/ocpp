@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from v16.CPO import token, schemas
-from database.database import get_db
-from database import models
+from v16.CPO.Auth import token
+from v16.CPO.Schemas import schemas
+from resources.database import get_db
+from resources import models
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from v16.CPO.hashing import Hash
+from v16.CPO.Hashing.hashing import Hash
 
 
 router = APIRouter(tags=["Authentication"])

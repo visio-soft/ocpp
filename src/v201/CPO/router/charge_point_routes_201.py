@@ -1,6 +1,6 @@
 from v201.CPO import schemas, oauth2
-from database import models
-from database.database import get_db
+from resources import models
+from resources.database import get_db
 from sqlalchemy.orm import Session
 from v201.CPO.hashing import Hash
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect

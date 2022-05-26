@@ -7,7 +7,7 @@ from ocpp.messages import _DecimalEncoder
 from ocpp.v16 import ChargePoint as cp
 from ocpp.v16 import call, call_result
 from ocpp.v16.enums import *
-from v16.CPO import crud
+from v16.CPO.CRUD import crud
 import json
 import logging
 

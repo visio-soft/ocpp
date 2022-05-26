@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
-from v16.CPO import schemas
-from database import models
+from v16.CPO.Schemas import schemas
+from resources import models
 from datetime import datetime
-from database.database import SessionLocal
+from resources.database import SessionLocal
 
 db = SessionLocal()
 

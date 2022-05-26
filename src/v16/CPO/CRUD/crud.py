@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from database.database import SessionLocal
-from database import models
+from resources.database import SessionLocal
+from resources import models
 from datetime import datetime
 
 db = SessionLocal()

@@ -1,15 +1,14 @@
-from logging import raiseExceptions
-from v16.CPO import schemas, oauth2, hashing
-from database.database import get_db
-from database import models
+from v16.CPO.Schemas import schemas
+from resources.database import get_db
+from resources import models
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
-from v16.cpo_class import ChargePoint
-from v16.CPO.websocket import WebsocketAdapter
-from v16.charge_point_operator import CentralSystem
+from v16.CPO.ChargePointOp.cpo_class import ChargePoint
+from v16.CPO.Websocket.websocket import WebsocketAdapter
+from v16.CPO.ChargePointOp.charge_point_operator import CentralSystem
 from ocpp.v16.enums import AvailabilityType
 from typing import List
-from v16.CPO import crud
+from v16.CPO.CRUD import crud
 import asyncio
 
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from v201.CPO import token
-from database import models
-from database.database import get_db
+from resources import models
+from resources.database import get_db
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from v201.CPO.hashing import Hash

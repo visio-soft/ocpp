@@ -4,7 +4,7 @@ from datetime import datetime
 from ocpp.v16 import ChargePoint as cp
 from ocpp.v16.enums import ChargingProfileKindType
 
-from v16.cpo_class import ChargePoint
+from v16.CPO.ChargePointOp.cpo_class import ChargePoint
 
 """This Class register chargers and forward the inputs from http_server to the correct Charge Point.
 """

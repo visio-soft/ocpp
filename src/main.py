@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from database import models
-from database.database import engine
-from v16.CPO.router import authentication, charge_point_routes_16
+from resources import models
+from resources.database import engine
+from v16.CPO.Router import authentication, charge_point_routes_16
 from v201.CPO.router import authentication, charge_point_routes_201
 import uvicorn
 import logging
