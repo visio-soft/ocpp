@@ -69,9 +69,10 @@ class ChargePoint(cp):
 
     @on(Action.GetConfiguration)
     def on_get_config(self, key: str = None):
+        print(key)
         return call_result.GetConfigurationPayload(
-            #configuration_key=key,
-            #unknown_key=List
+            configuration_key=[{"key": "HeartbeatInterval", "readonly": True, "value": "200"}],
+            unknown_key=["None"]
         )
 
     @on(Action.ChangeAvailability)
@@ -337,7 +338,7 @@ class ChargePoint(cp):
         if requested_message == "BootNotification":
             await self.send_boot_notification()  
         if requested_message == "Heartbeat":
-            await self.send_heartbeat()    
+            await self.send_heartbeat(interval=30)    
         return
 
     @on(Action.UnlockConnector)
@@ -347,7 +348,7 @@ class ChargePoint(cp):
         )
     
     @on(Action.SetChargingProfile)
-    async def set_charging_profile(self, connector_id: int, cs_charging_profile: dict):
+    async def set_charging_profile(self, connector_id: int, cs_charging_profiles):
         return call_result.SetChargingProfilePayload(
             status=ChargingProfileStatus.accepted
         )
@@ -359,7 +360,7 @@ class ChargePoint(cp):
         )
 
     @on(Action.GetDiagnostics)
-    async def on_get_diagnostics(self, location, retries, retry_interval, start_time, stop_time):
+    async def on_get_diagnostics(self, location, retries = None, retry_interval = None, start_time = None, stop_time = None):
         return call_result.GetDiagnosticsPayload(
             file_name="Drifter"
         )

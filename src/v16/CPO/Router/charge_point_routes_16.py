@@ -1,12 +1,11 @@
 from v16.CPO.Schemas import schemas
 from resources.database import get_db
-from resources import models
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from v16.CPO.ChargePointOp.cpo_class import ChargePoint
 from v16.CPO.Websocket.websocket import WebsocketAdapter
 from v16.CPO.ChargePointOp.charge_point_operator import CentralSystem
-from ocpp.v16.enums import AvailabilityType
+from ocpp.v16.enums import AvailabilityType, ResetType
 from typing import List
 from v16.CPO.CRUD import crud
 import asyncio
@@ -73,14 +72,27 @@ async def get_charge_point_session(charge_point_id: str, db: Session = Depends(g
         return(f"Failed to get charging session {charge_point_id}: {e}")
 
 #Done
-@router.get("/chargepoints/{charge_point_id}/chargingsessions/{id_tag}", response_model=schemas.ChargePointSessions,
-    summary="Get an past Charging Sessions of a Charge Point. ID Tag specifies the session.")
+@router.get("/chargepoints/{charge_point_id}/chargingsessions/{id_tag}", response_model=List[schemas.ChargePointSessions],
+    summary="Get an past Charging Sessions of a Charge Point. ID Tag and Transaction ID specifies the session.")
 async def get_charge_point_session_id(charge_point_id: str, id_tag: str, db: Session = Depends(get_db)):
     """
     GET a Charging Session specific to an ID Tag
     """
     try:    
-        charge_point_session = await crud.get_charge_point_session(db, charge_point_id, id_tag)
+        charge_point_session = await crud.get_all_charge_point_session_id(db, charge_point_id, id_tag)
+        return charge_point_session
+    except Exception as e:
+        return(f"Failed to get charging session {charge_point_id}: {e}")
+
+#Done
+@router.get("/chargepoints/{charge_point_id}/chargingsessions/{id_tag}/transaction/{transaction_id}", response_model=schemas.ChargePointSessions,
+    summary="Get an past Charging Sessions of a Charge Point. ID Tag specifies the session.")
+async def get_charge_point_session_id(charge_point_id: str, id_tag: str, transaction_id: int, db: Session = Depends(get_db)):
+    """
+    GET a Charging Session specific to an ID Tag
+    """
+    try:    
+        charge_point_session = await crud.get_charge_point_session_id(db, charge_point_id, id_tag, transaction_id)
         return charge_point_session
     except Exception as e:
         return(f"Failed to get charging session {charge_point_id}: {e}")
@@ -114,16 +126,20 @@ async def get_connector_session(charge_point_id: str, connector_id: int, db: Ses
 #Done"
 @router.put("/chargepoints/{charge_point_id}/connectors/{connector_id}/remotestart",
     summary="Remotely start a Charging Session from an application connected to the platform.")
-async def remote_start( charge_point_id: str, id_tag: str, connector_id: int = None):
+async def remote_start( charge_point_id: str, id_tag: str, connector_id: int = None, db: Session = Depends(get_db)):
     """
     Start a Charging Session.
     """
-    try:
-        get_response = await cpo.start_remote(charge_point_id, id_tag, connector_id)
-        print(f" The response from charger {get_response}")
-        return get_response
-    except Exception as e:
-        return(f"Failed to start remote charging {charge_point_id}: {e}")
+    charging = await crud.start_check_ongoing_charging_session(db, charge_point_id, id_tag)
+    if not charging:
+        try:
+            get_response = await cpo.start_remote(charge_point_id, id_tag, connector_id)
+            print(f" The response from charger {get_response}")
+            return get_response
+        except Exception as e:
+            return(f"Failed to start remote charging {charge_point_id}: {e}")
+    else:
+        return(f"This ID has already an ongoing transaction.")
 
 #Done"
 @router.put("/chargepoints/{charge_point_id}/remotestop",
@@ -132,7 +148,7 @@ async def remote_stop(charge_point_id: str, transaction_id: int, db: Session = D
     """
     Stop a Charging Session
     """
-    charging = await crud.check_ongoing_charging_session(db, charge_point_id, transaction_id)
+    charging = await crud.stop_check_ongoing_charging_session(db, charge_point_id, transaction_id)
     if charging:
         try:
             get_response = await cpo.stop_remote(charge_point_id, transaction_id)
@@ -150,10 +166,8 @@ async def get_connector_config(charge_point_id:str, key: schemas.ConfigurationKe
     """
     GET Configurations set to a connector
     """
-    key = [key]
     try:
         get_response = await cpo.get_configuration(charge_point_id, key)
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to get configuration of charge point {charge_point_id}: {e}")
@@ -161,7 +175,7 @@ async def get_connector_config(charge_point_id:str, key: schemas.ConfigurationKe
 #Done
 @router.put("/chargepoints/{charge_point_id}/configure",
     summary="Remotely configure a Charge Point.")
-async def put_connector_config(charge_point_id: str, key: str, value: int):
+async def put_connector_config(charge_point_id: str, key: schemas.ConfigurationKey, value: str):
     """
     PUT a request to change Configuration within the ConfigurationKey Enum
     """
@@ -189,11 +203,10 @@ async def put_connector_config(charge_point_id: str, connector_id: int, type: Av
 #Done
 @router.put("/chargepoints/{charge_point_id}/reset",
     summary="Restart a Charge Point")
-async def reset(charge_point_id: str, request: schemas.Reset):
+async def reset(charge_point_id: str, type: ResetType):
     """
     Reset Charge Point
     """
-    type = request.type
     try:
         get_response = await cpo.reset(charge_point_id, type)
         print(f" The response from charger {get_response}")
@@ -295,14 +308,13 @@ async def trigger_boot(charge_point_id:str, connector_id: int = None):
     """
     try:
         get_response = await cpo.trigger_boot(charge_point_id, connector_id )
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to GET Status: {e}")
 
 #Done
 @router.post("/chargepoints/{charge_point_id}/heartbeat",
-    summary="Charge Point sends a 'Keep alive' signal to CPO")
+    summary="Charge Point sends a 'Keep alive' signal to CPO. Sets the time interval to 30 seconds.")
 async def trigger_heartbeat(charge_point_id:str, connector_id: int = None):
     """
     Ask Charge Point to send a "is alive" heartbeat signal. Should be used if 
@@ -310,7 +322,6 @@ async def trigger_heartbeat(charge_point_id:str, connector_id: int = None):
     """
     try:
         get_response = await cpo.trigger_heartbeat(charge_point_id, connector_id )
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to GET Status: {e}")
@@ -324,7 +335,6 @@ async def put_unlock(charge_point_id:str, connector_id: int):
     """
     try:
         get_response = await cpo.unlock_connector(charge_point_id, connector_id)
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to unlock connector: {e}")
@@ -356,14 +366,14 @@ async def send_local_list(charge_point_id: str, request: schemas.LocalList):
         return(f"Failed to send local list {charge_point_id}: {e}")
 
 #Proper data type needed for cs_charging_profile
-@router.post("/chargepoints/{charge_point_id}/chargingprofile",
+@router.post("/chargepoints/{charge_point_id}/chargingprofile/{connector_id}",
     summary="Set a Charging Profile of a Charge Point. Control the maximum output of a Charge Point during a period of time.")
-async def charging_profile(charge_point_id: str, request: schemas.ChargingProfile):
+async def charging_profile(charge_point_id: str, connector_id: int, request: schemas.SetChargingProfile):
     """
     Set Charging Profile allows Charge Point to set maximum "A" or "W" during a period of time.
     """
     try:
-        get_response = await cpo.set_charging_profile(charge_point_id, request.connector_id, request.cs_charging_profile)
+        get_response = await cpo.set_charging_profile(charge_point_id, connector_id, request.cs_charging_profile)
         return get_response
     except Exception as e:
         return(f"Failed to set charging profile {charge_point_id}: {e}")
@@ -382,14 +392,14 @@ async def charging_profile(charge_point_id: str, request: schemas.CompositeSched
         return(f"Failed to set charging profile {charge_point_id}: {e}")
 
 #Done
-@router.post("/chargepoints/{charge_point_id}/chargingprofile/clear",
+@router.post("/chargepoints/{charge_point_id}/chargingprofile/clear/{connector_id}",
     summary="Clear Charging Profile erases a Charging Profile of a Charge Point.")
-async def clear_charging_profile(charge_point_id: str, request: schemas.ClearChargingProfile):
+async def clear_charging_profile(charge_point_id: str, connector_id:int, request: schemas.ClearChargingProfile):
     """
     Clear Charging Profile erases the Charging Profile of a specific ID.
     """
     try:
-        get_response = await cpo.clear_charging_profile(charge_point_id, request.id, request.connector_id, request.charging_profile_purpose,
+        get_response = await cpo.clear_charging_profile(charge_point_id, request.id, connector_id, request.charging_profile_purpose,
             request.stack_level)
         return get_response
     except Exception as e:

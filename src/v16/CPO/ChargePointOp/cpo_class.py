@@ -8,7 +8,7 @@ from ocpp.v16 import ChargePoint as cp
 from ocpp.v16 import call, call_result
 from ocpp.v16.enums import *
 from v16.CPO.CRUD import crud
-import json
+import simplejson
 import logging
 
 
@@ -299,10 +299,13 @@ class ChargePoint(cp):
         )
 
         response = await self.call(request)
+
+        #response.list_version
+
         return response
 
-    #Implemented // Fix correct data types in local_authorization_list
-    async def send_local_list(self, list_version: int, update_type: UpdateType, local_authorization_list: list = None, **kwargs):
+    #Implemented
+    async def send_local_list(self, list_version: int, update_type: UpdateType, local_authorization_list = None, **kwargs):
         """
         Send authorized users to Charge Point
         """
@@ -312,10 +315,8 @@ class ChargePoint(cp):
             update_type=update_type
         )
 
-        if local_authorization_list:
-            request.local_authorization_list = local_authorization_list
-
-        print(request)
+        if local_authorization_list:                
+            request.local_authorization_list = [local_authorization_list]
 
         response = await self.call(request)
         return response
@@ -336,7 +337,7 @@ class ChargePoint(cp):
 
 
     #Implemented
-    async def send_get_configuration(self, key: List = None, **kwargs):
+    async def send_get_configuration(self, key = None, **kwargs):
         """
         Get configuration information from a key in Charge Point
         """
@@ -344,7 +345,7 @@ class ChargePoint(cp):
         request = call.GetConfigurationPayload()
 
         if key:
-            request.key = key
+            request.key = [key]
 
         print(request)
 
@@ -441,12 +442,10 @@ class ChargePoint(cp):
         return response
 
     #Not completed // Fix data types in cs_charging_profiles
-    async def send_charging_profile(self, connector_id: int, cs_charging_profiles: dict):
+    async def send_charging_profile(self, connector_id: int, cs_charging_profiles):
         """
         Set a Charging Profile for Charge Point
         """
-        cs_charging_profiles = json.dumps(cs_charging_profiles, default=lambda o: o.__dict__)
-        print(cs_charging_profiles)
         request = call.SetChargingProfilePayload(
             connector_id=connector_id,
             cs_charging_profiles= cs_charging_profiles

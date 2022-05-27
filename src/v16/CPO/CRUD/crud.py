@@ -15,18 +15,25 @@ async def get_charge_point_sessions(db: Session, charge_point_id: str):
     return db.query(models.PastChargePointSessions16).filter(models.PastChargePointSessions16.charge_point_id == charge_point_id).all()
 
 async def get_charge_point_sessions_connector(db: Session, charge_point_id: str, connector_id: int = None):
-    return db.query(models.PastChargePointSessions16).filter(models.PastChargePointSessions16.charge_point_id == charge_point_id,
-        models.PastChargePointSessions16.connector_id == connector_id).all()
+    return db.query(models.OngoingChargePointSessions16).filter(models.OngoingChargePointSessions16.charge_point_id == charge_point_id,
+        models.OngoingChargePointSessions16.connector_id == connector_id).all()
 
-async def get_charge_point_session(db: Session, charge_point_id: str, connector_id: int):
+async def get_all_charge_point_session_id(db: Session, charge_point_id: str, id_tag: str):
     return db.query(models.PastChargePointSessions16).filter(models.PastChargePointSessions16.charge_point_id == charge_point_id, 
-        models.PastChargePointSessions16.connector_id == connector_id).first()
+        models.PastChargePointSessions16.id_tag == id_tag).all()
+
+async def get_charge_point_session_id(db: Session, charge_point_id: str, id_tag: str, transaction_id: int):
+    return db.query(models.PastChargePointSessions16).filter(models.PastChargePointSessions16.charge_point_id == charge_point_id, 
+        models.PastChargePointSessions16.id_tag == id_tag, models.PastChargePointSessions16.transaction_id == transaction_id).first()
 
 async def get_ongoing_charge_point_session(db: Session, charge_point_id: str, transaction_id):
     return db.query(models.OngoingChargePointSessions16).filter(models.OngoingChargePointSessions16.charge_point_id == charge_point_id, 
         models.OngoingChargePointSessions16.transaction_id == transaction_id).first()
 
-async def check_ongoing_charging_session(db: Session, charge_point_id: str, transaction_id):
+async def start_check_ongoing_charging_session(db: Session, charge_point_id: str, id_tag: str):
+    return db.query(models.OngoingChargePointSessions16).filter_by(id_tag=id_tag, charge_point_id=charge_point_id).first()
+
+async def stop_check_ongoing_charging_session(db: Session, charge_point_id: str, transaction_id: int):
     return db.query(models.OngoingChargePointSessions16).filter_by(transaction_id=transaction_id, charge_point_id=charge_point_id).first()
 
 async def get_status(db: Session, charge_point_id: str):
@@ -160,14 +167,15 @@ async def transaction_db(charge_point_id: str, transaction_id: int, connector_id
         reservation_id=reservation_id
     )
     active_transaction = db.query(models.OngoingChargePointSessions16).filter(models.OngoingChargePointSessions16.charge_point_id == charge_point_id, 
-        models.OngoingChargePointSessions16.connector_id == connector_id).all()
+        models.OngoingChargePointSessions16.connector_id == connector_id, models.OngoingChargePointSessions16.id_tag == id_tag, 
+            models.OngoingChargePointSessions16.transaction_id == transaction_id).all()
     if not active_transaction:
         db.add(transaction)
         db.commit()
         db.refresh(transaction)
         return transaction
     else:
-        return {""}
+        return(f"Transaction already started.")
 
 async def stop_transaction_db(charge_point_id:str, transaction_id: int, id_tag: str, meter_stop:int, timestamp:str, reason:str, transaction_data:list):
     for list in transaction_data:

@@ -102,7 +102,7 @@ class CentralSystem(cp):
         Tested on hardware"""
         for cp, task in self._chargers.items():
             if cp.id == cp_id:
-                requested_message="DiagnosticsStatussNotification"
+                requested_message="DiagnosticsStatusNotification"
                 response=await cp.send_trigger(requested_message, connector_id)
                 return response
         raise ValueError(f"Charger {id} not connected.")
@@ -156,7 +156,7 @@ class CentralSystem(cp):
                 return response
         raise ValueError(f"Charger {id} not connected.")
 
-    async def get_configuration(self, cp_id: str, key: list):
+    async def get_configuration(self, cp_id: str, key):
         """Get the current configuration of a specfic Key of a charge point.
         Tested but not on hardware"""
         for cp, task in self._chargers.items():
@@ -192,7 +192,7 @@ class CentralSystem(cp):
                 return response
             raise ValueError(f"Charger {id} not connected.")
 
-    async def send_local_list(self, cp_id: str, list_version: int, update_type: str, local_authorization_list: list = None):
+    async def send_local_list(self, cp_id: str, list_version: int, update_type: str, local_authorization_list = None):
         """CPO put a local authorization list to a charge point
         Tested but not on hardware"""
         for cp, task in self._chargers.items():
@@ -244,7 +244,7 @@ class CentralSystem(cp):
                 return response
         raise ValueError(f"Charger {id} not connected.")  
 
-    async def set_charging_profile(self, cp_id: str, connector_id: int, cs_charging_profiles: dict):
+    async def set_charging_profile(self, cp_id: str, connector_id: int, cs_charging_profiles):
         """CPO set charging profile for Charge Point."""
         for cp, task in self._chargers.items():
             if cp.id == cp_id:

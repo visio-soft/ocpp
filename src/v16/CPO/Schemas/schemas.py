@@ -1,7 +1,8 @@
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 from datetime import datetime
 from ocpp.v16.enums import *
+from ocpp.v16.datatypes import *
 
 from pydantic import BaseModel
 
@@ -119,9 +120,6 @@ class Configuration(BaseModel):
 
 class GetConfig(BaseModel):
     key: ConfigurationKey
-    
-class Reset(BaseModel):
-     type: ResetType
 
 class TokenRefresh(BaseModel):
     token: Optional[str] = None
@@ -173,22 +171,9 @@ class IdTagStatus(str, Enum):
     invalid ="Invalid"
     concurrent_tx = "ConcurrentTx"
 
-class UpdateType(str, Enum):
-    full = "Full"
-    differential = "Differential"
-
-class IdTagInfo(BaseModel):
-    expiry_date: datetime
-    parent_id_tag: str
-    status: IdTagStatus
-
-class LocalAuthorizationList(BaseModel):
-    id_tag: str
-    id_tag_info: IdTagInfo
-
 class LocalList(BaseModel):
     list_version: int
-    local_authorization_list: List[LocalAuthorizationList] = None
+    local_authorization_list:AuthorizationData
     update_type: UpdateType
 
 class ChargingSchedulePeriod(BaseModel):
@@ -200,7 +185,7 @@ class ChargingSchedule(BaseModel):
     duration: Optional[int] = None
     start_schedule: Optional[str] = None
     charging_rate_unit: ChargingRateUnitType
-    charging_schedule_period: list[ChargingSchedulePeriod]
+    charging_schedule_period: List[ChargingSchedulePeriod]
     min_charging_rate: Optional[float] = None
 
 class CompositeSchedule(BaseModel):
@@ -224,13 +209,11 @@ class csChargingProfile(BaseModel):
     valid_to: Optional[str] = None
     charging_schedule: ChargingSchedule
 
-class ChargingProfile(BaseModel):
-    connector_id: int
-    cs_charging_profile: csChargingProfile
+class SetChargingProfile(BaseModel):
+    cs_charging_profile: ChargingProfile
 
 class ClearChargingProfile(BaseModel):
     id: int
-    connector_id: int
     charging_profile_purpose: ChargingProfilePurposeType
     stack_level: int
 
