@@ -18,6 +18,9 @@ message.
 Copied the version v1.6 to start the v2.0.1 version. The CPO functions has to be remade to fit OCPP 2.0.1 and the routes have
 to be modified to fit this version.
 
-2022-04-26: Implemented all of the functions in OCPP 1.6 protocol. Sessions are properly stored in DB. Ongoing sessions is stored separately from Past
+2022-05-26: Implemented all of the functions in OCPP 1.6 protocol. Sessions are properly stored in DB. Ongoing sessions is stored separately from Past
 sessions. Issues with sending Set Charging Profile through OCPP because of data type issue. Erases previous code which has been depracted. Commenting
 and testing is needed.
+
+2022-06-01: Set all endpoints related to OCPP v2.0.1 functions. Copied endpoints and functions from v1.6. Needs to be revised.
+Started adding functions. Authorize, Local List, Transaction Event, Request Start, Set and Get Variables have been implemented and tested in virtual environment.
