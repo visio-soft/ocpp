@@ -142,7 +142,7 @@ async def remote_start( charge_point_id: str, id_tag: str, connector_id: int = N
         return(f"This ID has already an ongoing transaction.")
 
 #Done"
-@router.put("/chargepoints/{charge_point_id}/remotestop",
+@router.put("/chargepoints/{charge_point_id}/remotestop/{transaction_id}",
     summary="Remotely stops a Charging Session from an application connected to the platform.")
 async def remote_stop(charge_point_id: str, transaction_id: int, db: Session = Depends(get_db)):
     """
@@ -209,7 +209,6 @@ async def reset(charge_point_id: str, type: ResetType):
     """
     try:
         get_response = await cpo.reset(charge_point_id, type)
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to reset charge point {charge_point_id}: {e}")
@@ -224,7 +223,6 @@ async def trigger_status(charge_point_id:str, connector_id: int = None, db: Sess
     try:
         get_response = await cpo.trigger_status(charge_point_id, connector_id)
         print(f" The response from charger {get_response}")
-        asyncio.wait(1)
         status = await crud.get_status(db, charge_point_id)
         return status
     except Exception as e:

@@ -308,6 +308,7 @@ class ChargePoint(cp):
                     ])]
         )
         response = await self.call(request)
+        return response
 
     async def send_diagnostics(self, *args, **kwargs):
         return await self.call(call.DiagnosticsStatusNotificationPayload(

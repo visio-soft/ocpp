@@ -1,0 +1,263 @@
+import asyncio
+from urllib import response
+
+from ocpp.v201 import ChargePoint as cp
+from ocpp.v201.datatypes import NetworkConnectionProfileType
+
+from v201.CPO.ChargePointOp.cpo_class_v201 import ChargePoint
+from typing import Dict, List
+
+"""This Class register chargers and forward the inputs from http_server to the correct Charge Point.
+"""
+
+
+class CentralSystem(cp):
+    def __init__(self):
+        self._chargers = {}
+
+    def register_charger(self, cp: ChargePoint) -> asyncio.Queue:
+        """
+        Register a new ChargePoint at the CPO. The function returns a
+        queue.  The CPO will put a message on the queue if the CPO wants to
+        close the connection.
+        """
+        queue = asyncio.Queue(maxsize=1)
+
+        # Store a reference to the task so we can cancel it later if needed.
+        task = asyncio.create_task(self.start_charger(cp, queue))
+        self._chargers[cp] = task
+
+        return queue
+
+    async def start_charger(self, cp, queue):
+        """
+        Start listening for message of charger.
+        """
+        try:
+            await cp.start()
+        except Exception as e:
+            print(f"Charger {cp.id} disconnected: {e}")
+        finally:
+            # Deletes the reference to the charger when the connection is closed.
+            del self._chargers[cp]
+            await queue.put(True)
+
+    async def disconnect_charger(self, cp_id: str):
+        """
+        Disconnects a specific charger
+        """
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                task.cancel()
+                return ("Charge Disconnected")
+        raise ValueError(f"Charger {id} not connected.")
+
+    async def request_start(self, cp_id, id_token: dict, remote_start_id: int, evse_id: int = None, group_id_token: dict = None, charging_profile: dict = None):
+        """Starts a transaction remotely
+        Not tested"""
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_request_start_transaction(id_token, remote_start_id, evse_id)
+                return response
+        raise ValueError(f"Charger {id} not connected.")
+            
+
+    async def request_stop(self, cp_id, id_token: dict, transaction_id: str):
+        """Stops a trasaction remotely
+        Not tested"""
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_request_stop_transaction(transaction_id)
+                return response
+        raise ValueError(f"Charger {id} not connected.")            
+
+
+    async def reset(self, cp_id: str, type: str):
+        """Reset a specific charge point
+        Tested on hardware"""
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_reset(type)
+                return response
+        raise ValueError(f"Charger {id} not connected.")
+
+
+    async def trigger_meter_values(self, cp_id: str, requested_message: str):
+        """Get the meter values of a current or past transaction
+        Not developed"""
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                requested_message="MeterValues"
+                response = await cp.send_trigger(requested_message)
+                return response
+        raise ValueError(f"Charger {id} not connected.")
+
+    async def trigger_status(self, cp_id: str, requested_message: str):
+        """CPO sends a signal to trigger certain messages of the charge point.
+        Not tested"""
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                requested_message="StatusNotification"
+                response = await cp.send_trigger(requested_message)
+                return response
+        raise ValueError(f"Charger {id} not connected.")
+
+    async def trigger_boot(self, cp_id: str, requested_message: str):
+        """CPO sends a signal to trigger certain messages of the charge point.
+        Not tested"""
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                requested_message="BootNotification"
+                response = await cp.send_trigger(requested_message)
+                return response
+        raise ValueError(f"Charger {id} not connected.")
+
+    async def trigger_heartbeat(self, cp_id: str, requested_message: str):
+        """CPO sends a signal to trigger certain messages of the charge point.
+        Not tested"""
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                requested_message="Heartbeat"
+                response = await cp.send_trigger(requested_message)
+                return response
+        raise ValueError(f"Charger {id} not connected.")
+
+
+    async def unlock_connector(self, cp_id: str, evse_id: int, connector_id: int):
+        """CPO unlock a specific connector of a specific charge point.
+        Not tested"""
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_unlock_connector(evse_id, connector_id)
+                return response
+        raise ValueError(f"Charger {id} not connected.")
+    
+    #Done
+    async def set_variable(self, cp_id: str, set_variable_data: List):
+        """
+        Changes the configuration
+        """
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_set_variable(set_variable_data)                
+                return response
+            raise ValueError(f"Charger {id} not connected.")
+
+    # async def get_schedule(self, cp_id: str, evse_id: int, duration: int, charging_rate_unit: str):
+    #     """ Get Schedule of one connector of a charge point
+    #     Not tested"""
+    #     for cp, task in self._chargers.items():
+    #         if cp.id == cp_id:
+    #             await cp.send_get_schedule(evse_id, duration, charging_rate_unit)                
+    #             return 
+    #         raise ValueError(f"Charger {id} not connected.")
+
+    async def get_local_list(self, cp_id: str):
+        """
+        Get the local white list
+        """
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_get_local_list()                
+                return response
+            raise ValueError(f"Charger {id} not connected.")
+
+    #Done
+    async def get_variable(self, cp_id: str, get_variable_data: List):
+        """
+        Get the current configuration of a list of Keys of a charge point.
+        """
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_get_variable(get_variable_data)                
+                return response
+            raise ValueError(f"Charger {id} not connected.")
+
+    #Done
+    async def get_base_report(self, cp_id: str, request_id: int, report_base: str):
+        """
+        Get the current configuration of a list of Keys of a charge point.
+        """
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_get_report_base(request_id, report_base)                
+                return response
+            raise ValueError(f"Charger {id} not connected.")
+
+    #Done
+    async def set_network_profile(self, cp_id: str, configuration_slot: int, connection_data: dict):
+        """
+        Get the current configuration of a list of Keys of a charge point.
+        """
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_set_network_profile(configuration_slot, connection_data)                
+                return response
+            raise ValueError(f"Charger {id} not connected.")
+
+    # async def get_diagnostics(self, cp_id: str, location: str, retries: int, retry_interval: int, start_time: str, stop_time: str):
+    #     """Get the diagnostics of a specific physical part of a specific charge point for a set amount of time
+    #     Not tested"""
+    #     for cp, task in self._chargers.items():
+    #         if cp.id == cp_id:
+    #             await cp.send_get_configuration(location, retries, retry_interval, start_time, stop_time)                
+    #             return 
+    #         raise ValueError(f"Charger {id} not connected.")
+            
+
+    # async def change_availability(self, cp_id: str, operational_status: str):
+    #     """Changes the Availability of a specific charge point
+    #     Tested on hardware"""
+    #     for cp, task in self._chargers.items():
+    #         if cp.id == cp_id:
+    #             await cp.send_change_availability(operational_status)
+    #             return 
+    #         raise ValueError(f"Charger {id} not connected.")
+            
+    #Done
+    async def clear_cache(self, cp_id: str):
+        """
+        Clear the white list of authorized users of a specific charge point
+        """
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                response = await cp.send_clear_cache()
+                return response
+        raise ValueError(f"Charger {id} not connected.")
+
+    # async def reserve(self, cp_id: str, id: int, expiry_date: str, id_token: Dict, connector_id: int):
+    #     """CPO reserves a specific charge point with date and time
+    #     Not tested"""
+    #     for cp, task in self._chargers.items():
+    #         if cp.id == cp_id:
+    #             await cp.send_reserve_now(id, expiry_date, id_token, connector_id)
+    #             return 
+    #     raise ValueError(f"Charger {id} not connected.")
+
+    # async def cancel_reservation(self, cp_id, reservation_id: int):
+    #     """CPO cancel a reservation.
+    #     Not tested"""
+    #     for cp, task in self._chargers.items():
+    #         if cp.id == cp_id:
+    #             await cp.send_cancel_reservation(reservation_id)
+    #             return 
+    #     raise ValueError(f"Charger {id} not connected.")    
+
+
+    # async def clear_charging_profile(self, cp_id: str, charging_profile_id: int):
+    #     """CPO clear the charging profile of a charge point
+    #     Not tested"""
+    #     for cp, task in self._chargers.items():
+    #         if cp.id == cp_id:
+    #             await cp.send_clear_charging_profile(charging_profile_id)
+    #             return 
+    #     raise ValueError(f"Charger {id} not connected.")  
+
+    async def send_local_list(self, cp_id: str, version_number, update_type, local_authorization_list: list = None):
+        """CPO PUT a local authorization list to a charge point
+        Tested but not on hardware"""
+        for cp, task in self._chargers.items():
+            if cp.id == cp_id:
+                await cp.send_local_list(version_number, local_authorization_list, update_type)
+                return 
+        raise ValueError(f"Charger {id} not connected.")             
