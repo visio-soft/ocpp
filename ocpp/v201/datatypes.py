@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 
 from ocpp.v201 import enums
 
@@ -436,7 +436,7 @@ class GetVariableResultType:
 
     attribute_status: enums.GetVariableStatusType
     component: ComponentType
-    variable = VariableType
+    variable: VariableType
     attribute_type: Optional[enums.AttributeType] = None
     attribute_value: Optional[str] = None
     attribute_status_info: Optional[StatusInfoType] = None
@@ -571,6 +571,7 @@ class SampledValueType:
 
     value: float
     context: Optional[enums.ReadingContextType] = None
+    measurand: Optional[enums.MeasurandType] = None
     phase: Optional[enums.PhaseType] = None
     location: Optional[enums.LocationType] = None
     signed_meter_value: Optional[SignedMeterValueType] = None
@@ -587,7 +588,7 @@ class MeterValueType:
     """
 
     timestamp: str
-    sampled_value: SampledValueType
+    sampled_value: List[SampledValueType]
 
 
 @dataclass
