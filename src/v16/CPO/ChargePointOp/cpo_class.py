@@ -3,12 +3,10 @@ from typing import Dict, List
 from uuid import uuid4
 
 from ocpp.routing import on, after
-from ocpp.messages import _DecimalEncoder
 from ocpp.v16 import ChargePoint as cp
 from ocpp.v16 import call, call_result
 from ocpp.v16.enums import *
 from v16.CPO.CRUD import crud
-import simplejson
 import logging
 
 
@@ -316,7 +314,7 @@ class ChargePoint(cp):
         )
 
         if local_authorization_list:                
-            request.local_authorization_list = [local_authorization_list]
+            request.local_authorization_list = local_authorization_list
 
         response = await self.call(request)
         return response
