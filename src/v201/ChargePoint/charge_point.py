@@ -24,7 +24,7 @@ class ChargePoint(cp):
 
     async def send_authorize(self, id_token):
         request = call.AuthorizePayload(
-            id_token={"idToken": "44AA", "type": "Central"}
+            id_token={"idToken": id_token['id_token'], "type": "Central"}
         )
         response = await self.call(request)
         return response
@@ -96,8 +96,8 @@ class ChargePoint(cp):
 
     @after(Action.RequestStartTransaction)
     async def on_start_remote(self, id_token, remote_start_id, evse_id):
-        await self.send_authorize(id_token)
-        await self.transaction_event(id_token, remote_start_id, evse_id)
+        await self.send_authorize(self.id, id_token)
+        await self.transaction_event(self.id, id_token, remote_start_id, evse_id)
         return
 
     @on(Action.RequestStopTransaction)
@@ -105,6 +105,11 @@ class ChargePoint(cp):
         return call_result.RequestStopTransactionPayload(
             status=RequestStartStopStatusType.accepted
         )
+
+    @after(Action.RequestStartTransaction)
+    async def on_start_remote(self, transaction_id):
+        await self.transaction_event(self.id, transaction_id)
+        return
 
     @on(Action.ReserveNow)
     def on_reserve_now(self, id, expiry_date, id_token, connector_type):
@@ -205,69 +210,106 @@ class ChargePoint(cp):
             seq_no=1,
             transaction_info=
                 {"transaction_id":"ABC123",
-                "charging_state":"EVConnected",
-                "time_spent_charging": 0,
-                "remote_start_id": "ABC123"},
+                "charging_state":"Charging",
+                "time_spent_charging": 1,
+                "stopped_reason": "Remote",
+                "remote_start_id": remote_start_id},
             meter_value=[MeterValueType(
-                timestamp= datetime.now().isoformat(), 
+                timestamp = datetime.now().isoformat(), 
                 sampled_value = [
-                    SampledValueType(value= '200', context= 'Transaction.End', measurand= 'Current.Export', 
-                        phase= 'L1', location= 'Outlet', unit_of_measure= 'A'),
-                    SampledValueType(value= '50', context= 'Transaction.End', measurand= 'Current.Import', 
-                        phase= 'L1', location= 'Outlet', unit_of_measure= 'A'),
-                    SampledValueType(value= '12', context= 'Transaction.End', measurand= 'Current.Offered', 
-                        phase= 'L1', location= 'Outlet', unit_of_measure= 'A'),
-                    SampledValueType(value= '1000', context= 'Transaction.End', 
-                        measurand= 'Energy.Active.Export.Register', phase= 'L1', location= 'Outlet', unit_of_measure= 'kWh'),
-                    SampledValueType(value= '305', context= 'Transaction.End', 
-                        measurand= 'Energy.Active.Import.Register', phase= 'L1', location= 'Outlet', unit_of_measure= 'kWh'),
-                    SampledValueType(value= '740', context= 'Transaction.End',
-                        measurand= 'Energy.Reactive.Export.Register', phase= 'L1', location= 'Outlet', unit_of_measure= 'kvarh'),
-                    SampledValueType(value= '500', context= 'Transaction.End', 
-                        measurand= 'Energy.Reactive.Import.Register', phase= 'L1', location= 'Outlet', unit_of_measure= 'kvarh'),
-                    SampledValueType(value= '1', context= 'Transaction.End',
-                        measurand= 'Energy.Active.Export.Interval', phase= 'L1', location= 'Outlet', unit_of_measure= 'kWh'),
-                    SampledValueType(value= '90', context= 'Transaction.End', 
-                        measurand= 'Energy.Active.Import.Interval', phase= 'L1', location= 'Outlet', unit_of_measure= 'kWh'),
-                    SampledValueType(value= '20.1', context= 'Transaction.End',
-                        measurand= 'Energy.Reactive.Export.Interval', phase= 'L1', location= 'Outlet', unit_of_measure= 'kvarh'),
-                    SampledValueType(value= '521', context= 'Transaction.End', 
-                        measurand= 'Energy.Reactive.Import.Interval', phase= 'L1', location= 'Outlet', unit_of_measure= 'kvarh'),
-                    SampledValueType(value= '888', context= 'Transaction.End',
-                        measurand= 'Frequency', phase= 'L1', location= 'Outlet', unit_of_measure= 'W'),
-                    SampledValueType(value= '222', context= 'Transaction.End', measurand= 'Power.Active.Export', 
-                        phase= 'L1', location= 'Outlet', unit_of_measure= 'W'),
-                    SampledValueType(value= '333', context= 'Transaction.End', 
-                        measurand= 'Power.Active.Import', phase= 'L1', location= 'Outlet', unit_of_measure= 'W'),
-                    SampledValueType(value= '621', context= 'Transaction.End', measurand= 'Power.Factor', 
-                        phase= 'L1', location= 'Outlet', unit_of_measure= 'W'),
-                    SampledValueType(value= '19', context= 'Transaction.End', measurand= 'Power.Offered', 
-                        phase= 'L1', location= 'Outlet', unit_of_measure= 'W'),
-                    SampledValueType(value= '4000', context= 'Transaction.End', 
-                        measurand= 'Power.Reactive.Export', phase= 'L1', location= 'Outlet', unit_of_measure= 'kvar'),
-                    SampledValueType(value= '1431', context= 'Transaction.End', 
-                        measurand= 'Power.Reactive.Import', phase= 'L1', location= 'Outlet', unit_of_measure= 'kvar'),
-                    SampledValueType(value= '634', context= 'Transaction.End',
-                        measurand= 'RPM', phase= 'L1', location= 'Outlet', unit_of_measure= 'W'),
-                    SampledValueType(value= '80', context= 'Transaction.End', 
-                        measurand= 'SoC', phase= 'L1', location= 'Outlet', unit_of_measure= 'Percent'),
-                    SampledValueType(value= '25689', context= 'Transaction.End', measurand= 'Temperature', 
-                        phase= 'L1', location= 'Outlet', unit_of_measure= 'Celsius'),
-                    SampledValueType(value= '5', context= 'Transaction.End', measurand= 'Voltage', 
-                        phase= 'L1', location= 'Outlet', unit_of_measure= 'V')
-                    ])],
+                    {'value': 200, 'context': 'Transaction.End', 'measurand': 'Current.Export', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},
+                        'unit_of_measure': {'unit':'A', 'multiplier': 1}},
+                    {'value': 50, 'context': 'Transaction.End', 'measurand': 'Current.Import', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},  
+                        'unit_of_measure': {'unit':'A', 'multiplier': 1}},
+                    {'value': 12, 'context': 'Transaction.End', 'measurand': 'Current.Offered', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'A', 'multiplier': 1}},
+                    {'value': 1000, 'context': 'Transaction.End', 'measurand': 'Energy.Active.Export.Register', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'kWh', 'multiplier': 1}},
+                    {'value': 305, 'context': 'Transaction.End', 'measurand': 'Energy.Active.Import.Register', 'phase': 'L1', 'location': 'Outlet',
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'kWh', 'multiplier': 1}},
+                    {'value': 740, 'context': 'Transaction.End', 'measurand': 'Energy.Reactive.Export.Register', 'phase': 'L1', 'location': 'Outlet',
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'kvarh', 'multiplier': 1}},
+                    {'value': 500, 'context': 'Transaction.End', 'measurand': 'Energy.Reactive.Import.Register', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},  
+                        'unit_of_measure': {'unit':'kvarh', 'multiplier': 1}},
+                    {'value': 1, 'context': 'Transaction.End','measurand': 'Energy.Active.Export.Interval', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},  
+                        'unit_of_measure': {'unit':'kWh', 'multiplier': 1}},
+                    {'value': 90, 'context': 'Transaction.End', 'measurand': 'Energy.Active.Import.Interval', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'kWh', 'multiplier': 1}},
+                    {'value': 20.1, 'context': 'Transaction.End',
+                        'measurand': 'Energy.Reactive.Export.Interval', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'kvarh', 'multiplier': 1}},
+                    {'value': 521, 'context': 'Transaction.End', 
+                        'measurand': 'Energy.Reactive.Import.Interval', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},
+                        'unit_of_measure': {'unit':'kvarh', 'multiplier': 1}},
+                    {'value': 888, 'context': 'Transaction.End',
+                        'measurand': 'Frequency', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},  
+                        'unit_of_measure': {'unit':'W', 'multiplier': 1}},
+                    {'value': 222, 'context': 'Transaction.End', 'measurand': 'Power.Active.Export', 'phase': 'L1', 'location': 'Outlet',
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'W', 'multiplier': 1}},
+                    {'value': 333, 'context': 'Transaction.End', 
+                        'measurand': 'Power.Active.Import', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'W', 'multiplier': 1}},
+                    {'value': 621, 'context': 'Transaction.End', 'measurand': 'Power.Factor', 
+                        'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'W', 'multiplier': 1}},
+                    {'value': 19, 'context': 'Transaction.End', 'measurand': 'Power.Offered', 
+                        'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},  
+                        'unit_of_measure': {'unit':'W', 'multiplier': 1}},
+                    {'value': 4000, 'context': 'Transaction.End', 
+                        'measurand': 'Power.Reactive.Export', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'kvar', 'multiplier': 1}},
+                    {'value': 1431, 'context': 'Transaction.End', 
+                        'measurand': 'Power.Reactive.Import', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'}, 
+                        'unit_of_measure': {'unit':'kvar', 'multiplier': 1}},
+                    {'value': 643, 'context': 'Transaction.End',
+                        'measurand': 'Energy.Active.Net', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},  
+                        'unit_of_measure': {'unit':'kWh', 'multiplier': 1}},
+                    {'value': 80, 'context': 'Transaction.End', 
+                        'measurand': 'SoC', 'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},  
+                        'unit_of_measure': {'unit':'Percent', 'multiplier': 1}},
+                    {'value': 25687, 'context': 'Transaction.End', 'measurand': 'Energy.Reactive.Net',
+                        'phase': 'L1', 'location': 'Outlet',
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},  
+                        'unit_of_measure': {'unit':'kvarh', 'multiplier': 1}},
+                    {'value': 5, 'context': 'Transaction.End', 'measurand': 'Voltage', 
+                        'phase': 'L1', 'location': 'Outlet', 
+                        'signed_meter_value':{'signed_meter_data': 'Drif', 'signing_method': 'Ter', 'encoding_method': 'Drifter', 'public_key': 'World'},  
+                        'unit_of_measure': {'unit':'V', 'multiplier': 1}}
+                ])
+            ],
             offline=False,
             number_of_phases_used=1,
             cable_max_current=10,
             reservation_id=0,
             evse=
-                {"id": 1,
+                {"id": evse_id,
                 "connectorId": 1},
             id_token={
-                'id_token':"ABC123",
-                'type': "Local"}
+                'id_token':id_token['id_token'],
+                'type': "Central"}
         )
         response = await self.call(request)
+        return response
 
 
     @on(Action.TriggerMessage)

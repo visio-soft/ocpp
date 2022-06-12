@@ -40,7 +40,7 @@ class ChargePoint(cp):
 
     @after(Action.BootNotification)
     async def after_boot_notification(self, charging_station: dict, reason: str):
-        pass
+        await crud.boot_notification_db(self.id, charging_station, reason)
 
     @on(Action.Heartbeat)
     async def on_heartbeat(self):
@@ -77,14 +77,19 @@ class ChargePoint(cp):
             )
 
     @on(Action.TransactionEvent)
-    def on_transaction_event(self, connector_id: int, id_tag: str, meter_start: int, timestamp: str, reservation_id: int= None):
+    def on_transaction_event(self, event_type: str, timestamp: str, trigger_reason: str, seq_no: int, 
+        transaction_info: dict, meter_value: list | None = None, offline: bool | None = None, number_of_phases_used: int | None = None,
+        cable_max_current: int | None = None, reservation_id: int | None = None, evse: dict | None = None, id_token: dict | None = None):
         print("Transaction Event Updated")
         return call_result.TransactionEventPayload()
 
     @after(Action.TransactionEvent)
-    async def after_start_transaction(self, connector_id: int, id_tag: str, meter_start: int, timestamp: str, reservation_id: int= None):
-        timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f')
-        await crud.transaction_db(self.id, connector_id, id_tag, meter_start, timestamp, reservation_id)
+    async def after_start_transaction(self, event_type: str, timestamp: str, trigger_reason: str, seq_no: int, 
+        transaction_info: dict, meter_value: list | None = None, offline: bool | None = None, number_of_phases_used: int | None = None,
+        cable_max_current: int | None = None, reservation_id: int | None = None, evse: dict | None = None, id_token: dict | None = None):
+        await crud.transaction_db(self.id, event_type, timestamp, trigger_reason, seq_no, transaction_info,offline,number_of_phases_used,
+            cable_max_current, reservation_id, evse, id_token)
+        await crud.meter_value_db(self.id, meter_value, transaction_info)
 
 
     @on(Action.MeterValues)

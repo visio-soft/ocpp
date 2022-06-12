@@ -131,7 +131,7 @@ async def get_connector_session(charge_point_id: str, connector_id: int, db: Ses
 #Not done
 @router.put("/chargepoints/{charge_point_id}/remotestart")
 async def remote_start( charge_point_id: str,
-id_token: IdTokenType, remote_start_id: int, evse_id: int, charging_profile: ChargingProfileType):
+id_token: IdTokenType, remote_start_id: int, charging_profile: ChargingProfileType, evse_id: int=None):
     """
     Start a Charging Session
     """
@@ -143,14 +143,13 @@ id_token: IdTokenType, remote_start_id: int, evse_id: int, charging_profile: Cha
         return(f"Failed to start remote charging: {e}")
 
 #Not Done
-@router.put("/chargepoints/{charge_point_id}/connectors/{connector_id}/remotestop")
-async def remote_stop(charge_point_id: str, connector_id: int, transaction_id: str):
+@router.put("/chargepoints/{charge_point_id}/connectors/{transaction_id}/remotestop")
+async def remote_stop(charge_point_id: str, transaction_id: str):
     """
     Stop a Charging Session
-    Need Transaction ID Implemented
     """
     try:
-        get_response = await cpo.request_stop(charge_point_id, connector_id, transaction_id)
+        get_response = await cpo.request_stop(charge_point_id, transaction_id)
         return get_response
     except Exception as e:
         return(f"Failed to stop remote charging: {e}")
