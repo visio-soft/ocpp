@@ -52,7 +52,7 @@ class CentralSystem(cp):
                 return ("Charge Disconnected")
         raise ValueError(f"Charger {id} not connected.")
 
-    async def request_start(self, cp_id, id_token: dict, remote_start_id: int, evse_id: int = None, group_id_token: dict = None, charging_profile: dict = None):
+    async def request_start(self, cp_id, id_token: str, remote_start_id: int, evse_id: int = None, group_id_token: dict = None, charging_profile: dict = None):
         """Starts a transaction remotely
         Not tested"""
         for cp, task in self._chargers.items():
@@ -62,7 +62,7 @@ class CentralSystem(cp):
         raise ValueError(f"Charger {id} not connected.")
             
 
-    async def request_stop(self, cp_id, id_token: dict, transaction_id: str):
+    async def request_stop(self, cp_id, transaction_id: str):
         """Stops a trasaction remotely
         Not tested"""
         for cp, task in self._chargers.items():

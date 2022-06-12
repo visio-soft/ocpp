@@ -14,8 +14,6 @@ class User(BaseModel):
     first_name: str
     last_name: str
     email: str
-    mobile: str
-    rfid: RfidTagCreate
     password: str
 
 class Auth(BaseModel):
@@ -173,7 +171,7 @@ class IdTagStatus(str, Enum):
 
 class LocalList(BaseModel):
     list_version: int
-    local_authorization_list:AuthorizationData
+    local_authorization_list:list[AuthorizationData]
     update_type: UpdateType
 
 class ChargingSchedulePeriod(BaseModel):

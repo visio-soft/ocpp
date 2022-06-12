@@ -39,6 +39,45 @@ async def stop_check_ongoing_charging_session(db: Session, charge_point_id: str,
 async def get_status(db: Session, charge_point_id: str):
     return db.query(models.ChargePointStatus16).filter(models.ChargePointStatus16.charge_point_id == charge_point_id).first()
 
+async def send_local_list(db: Session, charge_point_id: str, list_version: int, update_type: str, local_authorization_list: list):
+    for list in local_authorization_list:
+        id_tag=list.id_tag
+        id_exist = db.query(models.LocalList).filter_by(id_tag = id_tag)
+        if list.id_tag_info:
+            id_tag_info=list.id_tag_info
+            expiry_date = id_tag_info.expiry_date
+            expiry_date = datetime.strptime(expiry_date, '%Y-%m-%dT%H:%M:%S.%f')
+            parent_id_tag = id_tag_info.parent_id_tag
+            status = id_tag_info.status
+        if not id_exist:
+            local_list = models.LocalList(
+                charge_point_id=charge_point_id,
+                list_version=list_version,
+                id_tag = id_tag,
+                expiry_date=expiry_date,
+                parent_id_tag=parent_id_tag,
+                status=status,
+                update_type=update_type,
+            )
+            db.add(local_list)
+            db.commit()
+            db.refresh(local_list)
+        else:
+            local_list = db.query(models.LocalList).filter(models.LocalList.id_tag == id_tag, models.LocalList.list_version == list_version).update({
+                    "charge_point_id":charge_point_id,
+                    "list_version":list_version,
+                    "id_tag":id_tag,
+                    "expiry_date":expiry_date,
+                    "parent_id_tag":parent_id_tag,
+                    "status":status,
+                    "update_type":update_type,
+                })
+            db.commit()
+    return
+
+async def get_local_list(db: Session, charge_point_id: str, list_version: int):
+    return db.query(models.LocalList).filter_by(charge_point_id=charge_point_id, list_version=list_version).all()
+
 async def meter_value_db(charge_point_id: str, connector_id: int, meter_value: list, transaction_id: int = None):
     for list in meter_value:
         timestamp = list['timestamp']
