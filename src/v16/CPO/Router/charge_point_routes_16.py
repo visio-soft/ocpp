@@ -412,7 +412,7 @@ async def clear_charging_profile(charge_point_id: str, connector_id:int, request
         return(f"Failed to clear charging profile {charge_point_id}: {e}")
 
 #Done
-@router.pust("/chargepoints/{charge_point_id}/clearcache",
+@router.post("/chargepoints/{charge_point_id}/clearcache",
     summary="Clear Cache erases the list of previous authorized users of a Charge Point.")
 async def clear_cache(charge_point_id: str, current_user: schemas.User = Depends(get_current_user)):
     """
