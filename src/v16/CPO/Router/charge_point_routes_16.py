@@ -32,116 +32,20 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         socket = WebsocketAdapter()
         await socket.disconnect(websocket)
 
-#Done
-@router.get("/chargepoints/{charge_point_id}", response_model=schemas.ChargePoint, 
-    summary="Get a Charge Point connected to the CPO. The response contains boot information about the Charge Point.")
-async def get_charge_point(charge_point_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
-    """
-    GET a Charge Point connected to the CPO
-    """
-    try:
-        charge_point = await crud.get_charge_point(db, charge_point_id)
-        return charge_point
-    except Exception as e:
-        return(f"Failed to get charging session {charge_point_id}: {e}")
-
-#Done // Not getting response
-@router.get("/chargepoints/owned", response_model=List[schemas.ChargePoint],
-    summary="Get all Charge Points connected to the CPO. The response contains boot information about the Charge Point.")
-async def get_all_charge_points(db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
-    """
-    GET all Charge Points that are connected to the CPO
-    """
-    try:
-        charge_points = await crud.get_all_charge_points(db)
-        return charge_points
-    except Exception as e:
-        return(f"Failed to get charge points: {e}")
-
-#Done
-@router.get("/chargepoints/{charge_point_id}/chargingsessions", response_model=List[schemas.ChargePointSessions],
-    summary="Get all past Charging Sessions of a Charge Point.")
-async def get_charge_point_session(charge_point_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
-    """
-    GET all active Charging Sessions of a Charge Point
-    """
-    try:
-        charge_point_session = await crud.get_charge_point_sessions(db, charge_point_id)
-        return charge_point_session
-    except Exception as e:
-        return(f"Failed to get charging session {charge_point_id}: {e}")
-
-#Done
-@router.get("/chargepoints/{charge_point_id}/chargingsessions/{id_tag}", response_model=List[schemas.ChargePointSessions],
-    summary="Get an past Charging Sessions of a Charge Point. ID Tag and Transaction ID specifies the session.")
-async def get_charge_point_session_id(charge_point_id: str, id_tag: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
-    """
-    GET a Charging Session specific to an ID Tag
-    """
-    try:    
-        charge_point_session = await crud.get_all_charge_point_session_id(db, charge_point_id, id_tag)
-        return charge_point_session
-    except Exception as e:
-        return(f"Failed to get charging session {charge_point_id}: {e}")
-
-#Done
-@router.get("/chargepoints/{charge_point_id}/chargingsessions/{id_tag}/transaction/{transaction_id}", response_model=schemas.ChargePointSessions,
-    summary="Get an past Charging Sessions of a Charge Point. ID Tag specifies the session.")
-async def get_charge_point_session_id(charge_point_id: str, id_tag: str, transaction_id: int, db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)):
-    """
-    GET a Charging Session specific to an ID Tag
-    """
-    try:    
-        charge_point_session = await crud.get_charge_point_session_id(db, charge_point_id, id_tag, transaction_id)
-        return charge_point_session
-    except Exception as e:
-        return(f"Failed to get charging session {charge_point_id}: {e}")
-
-#Done
-@router.get("/chargepoints/{charge_point_id}/connectors/{connector_id}/chargingsessions", response_model=List[schemas.ChargePointSessions],
-    summary="Get all past Charging Sessions of a one connector of a Charge Point.")
-async def get_connector_session(charge_point_id: str, connector_id: int, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
-    """
-    GET the Charging Sessions relevant to a connector
-    """
-    try:
-        charge_point_session = await crud.get_charge_point_sessions_connector(db, charge_point_id, connector_id)
-        return charge_point_session
-    except Exception as e:
-        return(f"Failed to get charging session {charge_point_id}: {e}")
-
-#Done
-@router.get("/chargepoints/{charge_point_id}/connectors/{connector_id}/chargingsessions/ongoing", response_model=List[schemas.ChargePointSessions],
-    summary="Get all ongoing Charging Sessions of a one connector of a Charge Point.")
-async def get_connector_session(charge_point_id: str, connector_id: int, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
-    """
-    GET ongoing Charging Sessions relevant to a connector
-    """
-    try:
-        charge_point_session = await crud.get_ongoing_charge_point_session(db, charge_point_id, connector_id)
-        return charge_point_session
-    except Exception as e:
-        return(f"Failed to get charging session {charge_point_id}: {e}")
-
 #Done"
 @router.put("/chargepoints/{charge_point_id}/connectors/{connector_id}/remotestart",
     summary="Remotely start a Charging Session from an application connected to the platform.")
-async def remote_start( charge_point_id: str, id_tag: str, connector_id: int = None, db: Session = Depends(get_db),
+async def remote_start( charge_point_id: str, id_tag: str, connector_id: int = None,
     current_user: schemas.User = Depends(get_current_user)):
     """
     Start a Charging Session.
     """
-    charging = await crud.start_check_ongoing_charging_session(db, charge_point_id, id_tag)
-    if not charging:
-        try:
-            get_response = await cpo.start_remote(charge_point_id, id_tag, connector_id)
-            print(f" The response from charger {get_response}")
-            return get_response
-        except Exception as e:
-            return(f"Failed to start remote charging {charge_point_id}: {e}")
-    else:
-        return(f"This ID has already an ongoing transaction.")
+    try:
+        get_response = await cpo.start_remote(charge_point_id, id_tag, connector_id)
+        print(f" The response from charger {get_response}")
+        return get_response
+    except Exception as e:
+        return(f"Failed to start remote charging {charge_point_id}: {e}")
 
 #Done"
 @router.put("/chargepoints/{charge_point_id}/remotestop/{transaction_id}",
@@ -151,19 +55,15 @@ async def remote_stop(charge_point_id: str, transaction_id: int, db: Session = D
     """
     Stop a Charging Session
     """
-    charging = await crud.stop_check_ongoing_charging_session(db, charge_point_id, transaction_id)
-    if charging:
-        try:
-            get_response = await cpo.stop_remote(charge_point_id, transaction_id)
-            print(f" The response from charger {get_response}")
-            return get_response
-        except Exception as e:
-            return(f"Failed to stop remote charging {charge_point_id}: {e}")
-    else:
-        return("Transaction ID could not be found.")
+    try:
+        get_response = await cpo(charge_point_id, transaction_id)
+        print(f" The response from charger {get_response}")
+        return get_response
+    except Exception as e:
+        return(f"Failed to stop remote charging {charge_point_id}: {e}")
 
 #Done
-@router.get("/chargepoints/{charge_point_id}/configure",
+@router.put("/chargepoints/{charge_point_id}/configure",
     summary="Get configurations from a Charge Point. Specify with Configuration Key to get the value of wanted configuration.")
 async def get_connector_config(charge_point_id:str, key: schemas.ConfigurationKey = None, current_user: schemas.User = Depends(get_current_user)):
     """
@@ -217,17 +117,15 @@ async def reset(charge_point_id: str, type: ResetType, current_user: schemas.Use
         return(f"Failed to reset charge point {charge_point_id}: {e}")
 
 #Done
-@router.get("/chargepoints/{charge_point_id}/status", response_model=schemas.ChargePointStatus,
+@router.put("/chargepoints/{charge_point_id}/status",
     summary="Get the status of a Charge Point.")
-async def trigger_status(charge_point_id:str, connector_id: int = None, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
+async def trigger_status(charge_point_id:str, connector_id: int = None, current_user: schemas.User = Depends(get_current_user)):
     """
     GET a Status Notification from a Charge Point by sending a Trigger Message
     """
     try:
         get_response = await cpo.trigger_status(charge_point_id, connector_id)
-        print(f" The response from charger {get_response}")
-        status = await crud.get_status(db, charge_point_id)
-        return status
+        return get_response
     except Exception as e:
         return(f"Failed to get status of charge point {charge_point_id}: {e}")
 
@@ -260,14 +158,14 @@ async def update_firmware(charge_point_id:str, request: schemas.UpdateFirmware, 
         return(f"Failed to GET Status: {e}")
 
 #Done
-@router.get("/chargepoints/{charge_point_id}/firmwarestatus",
+@router.put("/chargepoints/{charge_point_id}/firmwarestatus",
     summary="Get the update status of the firmware update.")
-async def trigger_firmware(charge_point_id:str, connector_id: int = None, current_user: schemas.User = Depends(get_current_user)):
+async def trigger_firmware(charge_point_id:str, current_user: schemas.User = Depends(get_current_user)):
     """
     Get Firmware Notification Message of Charge Point
     """
     try:
-        get_response = await cpo.trigger_frimware_status(charge_point_id, connector_id)
+        get_response = await cpo.trigger_frimware_status(charge_point_id)
         print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
@@ -288,14 +186,14 @@ async def get_diagnostics(charge_point_id:str, request: schemas.Diagnostics, cur
         return(f"Failed to GET Status: {e}")
 
 #Done
-@router.get("/chargepoints/{charge_point_id}/diagnosticsnotification",
+@router.put("/chargepoints/{charge_point_id}/diagnosticsnotification",
     summary="Get the status of the ongoing diagnostics transfer.")
-async def trigger_diagnostics(charge_point_id:str, connector_id: int = None, current_user: schemas.User = Depends(get_current_user)):
+async def trigger_diagnostics(charge_point_id:str, current_user: schemas.User = Depends(get_current_user)):
     """
     Get Diagnostics Message of Charge Point
     """
     try:
-        get_response = await cpo.trigger_diagnostics(charge_point_id, connector_id)
+        get_response = await cpo.trigger_diagnostics(charge_point_id)
         return get_response
     except Exception as e:
         return(f"Failed to GET Status: {e}")
@@ -303,12 +201,12 @@ async def trigger_diagnostics(charge_point_id:str, connector_id: int = None, cur
 #Done
 @router.post("/chargepoints/{charge_point_id}/boot",
     summary="Charge Point resends the boot notification message.")
-async def trigger_boot(charge_point_id:str, connector_id: int = None, current_user: schemas.User = Depends(get_current_user)):
+async def trigger_boot(charge_point_id:str, current_user: schemas.User = Depends(get_current_user)):
     """
     Charge Point send a Boot Notification message
     """
     try:
-        get_response = await cpo.trigger_boot(charge_point_id, connector_id )
+        get_response = await cpo.trigger_boot(charge_point_id)
         return get_response
     except Exception as e:
         return(f"Failed to GET Status: {e}")
@@ -316,13 +214,13 @@ async def trigger_boot(charge_point_id:str, connector_id: int = None, current_us
 #Done
 @router.post("/chargepoints/{charge_point_id}/heartbeat",
     summary="Charge Point sends a 'Keep alive' signal to CPO. Sets the time interval to 30 seconds.")
-async def trigger_heartbeat(charge_point_id:str, connector_id: int = None, current_user: schemas.User = Depends(get_current_user)):
+async def trigger_heartbeat(charge_point_id:str, current_user: schemas.User = Depends(get_current_user)):
     """
     Ask Charge Point to send a "is alive" heartbeat signal. Should be used if 
     heartbeat signal is not sent during regular interval.
     """
     try:
-        get_response = await cpo.trigger_heartbeat(charge_point_id, connector_id )
+        get_response = await cpo.trigger_heartbeat(charge_point_id)
         return get_response
     except Exception as e:
         return(f"Failed to GET Status: {e}")
@@ -342,7 +240,7 @@ async def put_unlock(charge_point_id:str, connector_id: int, current_user: schem
 
 
 #Done
-@router.get("/chargepoints/{charge_point_id}/locallist",
+@router.put("/chargepoints/{charge_point_id}/locallist",
     summary="Get the Local Authorization List version of a Charge Point.")
 async def get_local_list(charge_point_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     """
@@ -350,11 +248,7 @@ async def get_local_list(charge_point_id: str, db: Session = Depends(get_db), cu
     """
     try:
         get_response = await cpo.get_local_list(charge_point_id)
-        list_version = get_response.list_version
-        local_list = await crud.get_local_list(db, charge_point_id, list_version)
-        if not local_list:
-            return get_response, {"Could not find list in Database"}
-        return get_response, local_list
+        return get_response
     except Exception as e:
         return(f"Failed to get local list {charge_point_id}: {e}")
 
@@ -365,8 +259,7 @@ async def send_local_list(charge_point_id: str, request: schemas.LocalList, db: 
     current_user: schemas.User = Depends(get_current_user)):
     try:
         get_response = await cpo.send_local_list(charge_point_id, request.list_version, request.update_type, request.local_authorization_list)
-        local_list = await crud.send_local_list(db, charge_point_id, request.list_version, request.update_type, request.local_authorization_list)
-        return get_response, local_list
+        return get_response
     except Exception as e:
         return(f"Failed to send local list {charge_point_id}: {e}")
 
@@ -384,17 +277,17 @@ async def charging_profile(charge_point_id: str, connector_id: int, request: sch
         return(f"Failed to set charging profile {charge_point_id}: {e}")
 
 #Done
-@router.get("/chargepoints/{charge_point_id}/compositeschedule",
+@router.put("/chargepoints/{charge_point_id}/compositeschedule",
     summary="Get Composite Schedule of a Charge Point. The schedule referes to the Charging Profile schedule.")
-async def composite_schedule(charge_point_id: str, request: schemas.CompositeSchedule, current_user: schemas.User = Depends(get_current_user)):
+async def composite_schedule(charge_point_id: str, connector_id: int, duration: int, charging_rate_unit: str, current_user: schemas.User = Depends(get_current_user)):
     """
     Get Composite Schedule sends all the Charging Profile Schedule of a Charge Point.
     """
     try:
-        get_response = await cpo.get_schedule(charge_point_id, request.connector_id, request.duration, request.charging_rate_unit)
+        get_response = await cpo.get_schedule(charge_point_id, connector_id, duration, charging_rate_unit)
         return get_response
     except Exception as e:
-        return(f"Failed to set charging profile {charge_point_id}: {e}")
+        return(f"Failed to get charging schedule {charge_point_id}: {e}")
 
 #Done
 @router.put("/chargepoints/{charge_point_id}/connector/{connector_id}/chargingprofile",

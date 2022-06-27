@@ -97,43 +97,43 @@ class CentralSystem(cp):
                 return response
         raise ValueError(f"Charger {id} not connected.")
 
-    async def trigger_diagnostics(self, cp_id: str, connector_id: int = None):
+    async def trigger_diagnostics(self, cp_id: str):
         """CPO sends a signal to trigger certain messages of the charge point.
         Tested on hardware"""
         for cp, task in self._chargers.items():
             if cp.id == cp_id:
                 requested_message="DiagnosticsStatusNotification"
-                response=await cp.send_trigger(requested_message, connector_id)
+                response=await cp.send_trigger(requested_message)
                 return response
         raise ValueError(f"Charger {id} not connected.")
 
-    async def trigger_frimware_status(self, cp_id: str, connector_id: int = None):
+    async def trigger_frimware_status(self, cp_id: str):
         """CPO sends a signal to trigger certain messages of the charge point.
         Tested on hardware"""
         for cp, task in self._chargers.items():
             if cp.id == cp_id:
                 requested_message="FirmwareStatusNotification"
-                response=await cp.send_trigger(requested_message, connector_id)
+                response=await cp.send_trigger(requested_message)
                 return response
         raise ValueError(f"Charger {id} not connected.")
 
-    async def trigger_heartbeat(self, cp_id: str, connector_id: int = None):
+    async def trigger_heartbeat(self, cp_id: str):
         """CPO sends a signal to trigger certain messages of the charge point.
         Tested on hardware"""
         for cp, task in self._chargers.items():
             if cp.id == cp_id:
                 requested_message="Heartbeat"
-                response=await cp.send_trigger(requested_message, connector_id)
+                response=await cp.send_trigger(requested_message)
                 return response
         raise ValueError(f"Charger {id} not connected.")
 
-    async def trigger_boot(self, cp_id: str, connector_id: int = None):
+    async def trigger_boot(self, cp_id: str):
         """CPO sends a signal to trigger certain messages of the charge point.
         Tested on hardware"""
         for cp, task in self._chargers.items():
             if cp.id == cp_id:
                 requested_message="BootNotification"
-                response=await cp.send_trigger(requested_message, connector_id)
+                response=await cp.send_trigger(requested_message)
                 return response
         raise ValueError(f"Charger {id} not connected.")
 

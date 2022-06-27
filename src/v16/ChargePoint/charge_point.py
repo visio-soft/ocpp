@@ -25,16 +25,6 @@ class ChargePoint(cp):
             id_tag=id_tag
         )
         response = await self.call(request)
-
-        if response.id_tag_info['status'] == AuthorizationStatus.accepted:
-            print("User Authorized")
-
-        elif response.id_tag_info['status'] == AuthorizationStatus.invalid:
-            print("User Invalid")
-
-        else:
-            print("User Rejected")
-
         return
 
 
@@ -44,6 +34,7 @@ class ChargePoint(cp):
             charge_point_model="DrifterChargeBox",
             charge_point_vendor="Drifter",
             charge_box_serial_number="1234.DCba",
+            firmware_version="ocpp.1.6",
             iccid="aabb",
             imsi="bbaa",
             meter_serial_number="IEC",
@@ -71,7 +62,8 @@ class ChargePoint(cp):
     def on_get_config(self, key: str = None):
         print(key)
         return call_result.GetConfigurationPayload(
-            configuration_key=[{"key": "HeartbeatInterval", "readonly": True, "value": "200"}],
+            configuration_key=[{"key": "HeartbeatInterval", "readonly": True, "value": "200"},
+                {"key": "BlinkRepeat", "readonly": True, "value": "1"}],
             unknown_key=["None"]
         )
 
@@ -118,8 +110,10 @@ class ChargePoint(cp):
         return call_result.GetCompositeSchedulePayload(
             status=GetCompositeScheduleStatus.accepted,
             connector_id=1,
-            schedule_start=None,
-            charging_schedule=None
+            schedule_start=datetime.now().isoformat(),
+            charging_schedule={"duration": 100, "start_schedule": datetime.now().isoformat(), "charging_rate_unit": ChargingRateUnitType.amps, 
+                "min_charging_rate": 1, "charging_schedule_period": [{"start_period": 0, "limit": 50, "number_phases": 3}, 
+                {"start_period": 1, "limit": 100, "number_phases": 1}]}
         )
 
     @on(Action.GetLocalListVersion)
@@ -149,7 +143,7 @@ class ChargePoint(cp):
 
     async def send_data_transfer(self, vendor_id, message_id, data):
         request = call.DataTransferPayload(
-            id_tag=vendor_id,
+            vendor_id=vendor_id,
             message_id=message_id,
             data=data
         )
@@ -333,9 +327,9 @@ class ChargePoint(cp):
         if requested_message == "MeterValues":
             await self.send_meter_values(connector_id)
         if requested_message == "DiagnosticsStatusNotification":
-            await self.send_diagnostics(connector_id)
+            await self.send_diagnostics()
         if requested_message == "FirmwareStatusNotification":
-            await self.send_firmware_status(connector_id)
+            await self.send_firmware_status()
         if requested_message == "BootNotification":
             await self.send_boot_notification()  
         if requested_message == "Heartbeat":

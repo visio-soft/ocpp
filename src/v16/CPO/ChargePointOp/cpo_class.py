@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Dict, List
+from urllib import response
 from uuid import uuid4
 
 from ocpp.routing import on, after
@@ -25,38 +26,41 @@ class ChargePoint(cp):
 
     #Implemented
     @on(Action.BootNotification)
-    async def on_boot_notification(self, charge_point_serial_number: str, charge_point_vendor: str, charge_point_model: str, **kwargs):
+    async def on_boot_notification(self, charge_point_vendor: str, charge_point_model: str, 
+    charge_point_serial_number: str = None, firmware_version: str = None, charge_box_serial_number: str = None, iccid: str = None,
+    imsi: str = None, meter_serial_number: str = None, meter_type: str = None):
         """
         Recieved information of Charge Point (Usually sent upon connecting to CPO)
         """
         print("A new connection from: ")
-        return call_result.BootNotificationPayload(
+        response = call_result.BootNotificationPayload(
             current_time=datetime.now().isoformat(),
             interval=1000,
             status=RegistrationStatus.accepted
         )
+        await crud.boot_notification_db(
+            charge_point_id=self.id,
+            boot_timestamp=response.current_time,
+            charge_point_vendor=charge_point_vendor, 
+            charge_point_model=charge_point_model,
+            charge_point_serial_number=charge_point_serial_number, 
+            firmware_version=firmware_version,
+            charge_box_serial_number=charge_box_serial_number,
+            iccid=iccid,
+            imsi=imsi, 
+            meter_serial_number=meter_serial_number, 
+            meter_type=meter_type,
+            heartbeat_interval=response.interval,
+            status=response.status
+        )
+        return response
 
     #Implemented
     @after(Action.BootNotification)
     async def after_boot_notification(self, charge_point_vendor: str, charge_point_model: str, 
     charge_point_serial_number: str = None, firmware_version: str = None, charge_box_serial_number: str = None, iccid: str = None,
     imsi: str = None, meter_serial_number: str = None, meter_type: str = None):
-        """
-        Store Charge Point information in DB
-        """
-        charge_point_id = self.id
-        return await crud.boot_notification_db(
-            charge_point_id,
-            charge_point_vendor, 
-            charge_point_model, 
-            charge_point_serial_number, 
-            firmware_version,
-            charge_box_serial_number,
-            iccid,
-            imsi, 
-            meter_serial_number, 
-            meter_type
-        )
+        pass
         
     #Implemented
     @on(Action.Heartbeat)
@@ -65,9 +69,11 @@ class ChargePoint(cp):
         Recieved "Keep Alive" message
         """
         print("Recieved a heartbeat from: ")
-        return call_result.HeartbeatPayload(
-            current_time=datetime.now().isoformat() + "Z"
+        response = call_result.HeartbeatPayload(
+            current_time=datetime.now().isoformat()
         )
+        await crud.heartbeat_db(self.id, timestamp=response.current_time)
+        return response
 
     #Implemented
     @after(Action.Heartbeat)
@@ -75,33 +81,36 @@ class ChargePoint(cp):
         """
         Store status in DB
         """
-        timestamp = datetime.now()
-        return await crud.heartbeat_db(self.id, timestamp)
+        pass
 
     #Not Implemented
     @on(Action.Authorize)
-    def on_authorize(self, id_tag: str, **kwargs):
+    async def on_authorize(self, id_tag: str, **kwargs):
         """
         Recieved an authorization request
         """
         print("ID Token Accepted")
-        return call_result.AuthorizePayload(
+        response = call_result.AuthorizePayload(
             id_tag_info={
-                # 'expiry_date': 'JAN13',
-                # 'parent_id_tag': 'parent_tag',
+                "expiry_date": datetime.now().isoformat(),
+                "parent_id_tag": 'parent_tag',
 
                 "status": AuthorizationStatus.accepted
             }
         )
+        await crud.authorize_db(self.id, id_tag, authorization_status=response.id_tag_info['status'], 
+            expiry_date=response.id_tag_info['expiry_date'], parent_id_tag=response.id_tag_info['parent_id_tag'])
+        return response
 
     #Implemented
     @on(Action.StatusNotification)
-    def on_status_notification(self, connector_id: int, error_code: str, status: str, timestamp: str = None, info: str = None,
+    async def on_status_notification(self, connector_id: int, error_code: str, status: str, timestamp: str = None, info: str = None,
     vendor_id: str = None, vendor_error_code: str = None):
         """
         Recieved an updated Status Notification
         """
         print("Status Update request recieved")
+        await crud.status_db(self.id, connector_id, timestamp, error_code, status, info, vendor_id, vendor_error_code)
         return call_result.StatusNotificationPayload()
 
     #Implemented
@@ -111,17 +120,7 @@ class ChargePoint(cp):
         """
         Store Status of Charge Point/Connector in DB
         """
-        timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f')
-        return await crud.status_db(
-            self.id,
-            connector_id, 
-            error_code,
-            status,
-            timestamp, 
-            info, 
-            vendor_id, 
-            vendor_error_code,
-            )
+        pass
 
     #Implemented
     @on(Action.StartTransaction)
@@ -131,11 +130,13 @@ class ChargePoint(cp):
         """
         print("Starting transaction request recieved")
         transaction_id=uuid4().time_low
-        timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f')
-        await crud.transaction_db(self.id, transaction_id, connector_id, id_tag, meter_start, timestamp, reservation_id)
+        authorization_status = AuthorizationStatus.accepted
+        parent_id_tag="ABC123"
+        expiry_date=datetime.now().isoformat()
+        await crud.start_transaction_db(self.id,transaction_id, connector_id, id_tag, meter_start, timestamp, authorization_status, reservation_id, parent_id_tag, expiry_date)
         return call_result.StartTransactionPayload(
             transaction_id=transaction_id,
-            id_tag_info={"status": AuthorizationStatus.accepted}
+            id_tag_info={"parent_id_tag": parent_id_tag, "expiry_date": expiry_date, "status": authorization_status}
         )
 
     #Implemented
@@ -145,14 +146,20 @@ class ChargePoint(cp):
 
     #Implemented
     @on(Action.StopTransaction)
-    def on_stop_transaction(self, transaction_id: int, meter_stop: int, timestamp: str, reason: str, id_tag: Dict, transaction_data: List, **kwargs):
+    async def on_stop_transaction(self, transaction_id: int, meter_stop: int, timestamp: str, reason: str, id_tag: Dict, transaction_data: List, **kwargs):
         """
         Notified that transaction ended and recieved information about transaction
         """
         print("Stopping transaction request recieved")
-        return call_result.StopTransactionPayload(
-            id_tag_info={'status': AuthorizationStatus.accepted}
+        authorization_status = AuthorizationStatus.accepted
+        parent_id_tag="ABC123"
+        expiry_date=datetime.now().isoformat()
+        response = call_result.StopTransactionPayload(
+            id_tag_info={'parent_id_tag': parent_id_tag, 'expiry_date':expiry_date, 'status': authorization_status}
         )
+        await crud.stop_transaction_db(self.id, transaction_id, id_tag, meter_stop, timestamp, reason, transaction_data, authorization_status=authorization_status,
+            expiry_date=expiry_date, parent_id_tag=parent_id_tag)
+        return response
 
     #Implemented
     @after(Action.StopTransaction)
@@ -161,16 +168,15 @@ class ChargePoint(cp):
         """
         Store finished transaction information in DB
         """
-        await crud.stop_transaction_db(self.id, transaction_id, id_tag, meter_stop, timestamp, reason, transaction_data)
+        pass
 
     #Implemented
     @on(Action.MeterValues)
-    def on_meter_values(self, connector_id: int, meter_value: list, transaction_id: int = None, *args, **kwargs):
+    async def on_meter_values(self, connector_id: int, meter_value: list, transaction_id: int = None, *args, **kwargs):
         """
         Recieved Meter Values
         """
-        print("Meter Values request recieved")
-        print(f'{self.id} recieved MeterValue')
+        await crud.meter_value_db(self.id, connector_id, meter_value, transaction_id)
         return call_result.MeterValuesPayload()
 
     #Implemented
@@ -179,14 +185,15 @@ class ChargePoint(cp):
         """
         Store Values in DB
         """
-        return await crud.meter_value_db(self.id, connector_id, meter_value, transaction_id)
+        pass
 
     #Implemented
     @on(Action.DiagnosticsStatusNotification)
-    def on_diagnostics_status(self, *args, **kwargs):
+    async def on_diagnostics_status(self, status: str):
         """
         Recieved a Diagnostics Status Notification
         """
+        await crud.diagnostics_status_db(self.id, status)
         return call_result.DiagnosticsStatusNotificationPayload()
 
     
@@ -200,10 +207,11 @@ class ChargePoint(cp):
     
     #Implemented
     @on(Action.FirmwareStatusNotification)
-    def on_firmware_status(self, **kwargs):
+    async def on_firmware_status(self, status: str):
         """
         Recieved a Firmware Status Notification
         """
+        await crud.firmware_status_db(self.id, status)
         return call_result.FirmwareStatusNotificationPayload()
 
     #Implemented
@@ -215,11 +223,14 @@ class ChargePoint(cp):
         pass
 
     @on(Action.DataTransfer)
-    def on_data_transfer(self):
-        pass
+    async def on_data_transfer(self, vendor_id:str, message_id:str, data:str):
+        response_data = "Drifter"
+        status = DataTransferStatus.accepted
+        await crud.cp_data_transfer_db(self.id, vendor_id, message_id, request_data=data, response_data=response_data, response_status=status)
+        return call_result.DataTransferPayload(status, data=response_data)
 
     @after(Action.DataTransfer)
-    def after_data_transfer(self):
+    def after_data_transfer(self, vendor_id:str, message_id:str, data:str):
         pass
 
     #Implemented
@@ -240,6 +251,8 @@ class ChargePoint(cp):
             request.charging_profile = charging_profile
 
         response = await self.call(request)
+        await crud.remote_start_db(self.id, id_tag=id_tag, connector_id=connector_id, 
+            charging_profile=charging_profile, response_status=response.status)
         return response
         
 
@@ -254,6 +267,7 @@ class ChargePoint(cp):
         )
 
         response = await self.call(request)
+        await crud.remote_stop_db(self.id, transaction_id, response_status=response.status)
         return response
 
     #Implemented
@@ -268,6 +282,7 @@ class ChargePoint(cp):
         )
 
         response = await self.call(request)
+        await crud.availability_db(self.id, connector_id, type, response_status=response.status)
         return response
     
     #Implemented
@@ -285,6 +300,8 @@ class ChargePoint(cp):
             request.charging_rate_unit = charging_rate_unit
 
         response = await self.call(request)
+        await crud.get_composite_schedule_db(self.id, connector_id, duration, charging_rate_unit, response.schedule_start, 
+            response.charging_schedule, response.status)
         return response
 
     #Implemented
@@ -297,9 +314,7 @@ class ChargePoint(cp):
         )
 
         response = await self.call(request)
-
-        #response.list_version
-
+        await crud.get_local_list_db(self.id, response.list_version)
         return response
 
     #Implemented
@@ -317,6 +332,7 @@ class ChargePoint(cp):
             request.local_authorization_list = local_authorization_list
 
         response = await self.call(request)
+        await crud.send_local_list(self.id, list_version, update_type, local_authorization_list, response_status=response.status)
         return response
 
     #Implemented    
@@ -331,11 +347,12 @@ class ChargePoint(cp):
         )
 
         response = await self.call(request)
+        await crud.configure_db(self.id, key, value, response_status=response.status)
         return response
 
 
     #Implemented
-    async def send_get_configuration(self, key = None, **kwargs):
+    async def send_get_configuration(self, key:list = None, **kwargs):
         """
         Get configuration information from a key in Charge Point
         """
@@ -345,9 +362,8 @@ class ChargePoint(cp):
         if key:
             request.key = [key]
 
-        print(request)
-
         response = await self.call(request)
+        await crud.get_configuration_db(self.id, response.configuration_key, response.unknown_key)
         return response
 
     #Implemented
@@ -359,6 +375,7 @@ class ChargePoint(cp):
         request = call.ClearCachePayload()
 
         response = await self.call(request)
+        await crud.clear_cache_db(self.id, response_status=response.status)
         return response
 
     #Implemented
@@ -378,9 +395,8 @@ class ChargePoint(cp):
         if parent_id_tag:
             request.parent_id_tag = parent_id_tag
 
-        print(request)
-
         response = await self.call(request)
+        await crud.reservation_db(self.id, connector_id, id_tag, reservation_id, response_status=response.status, expiry_date=expiry_date, parent_id_tag=parent_id_tag)
         return response
 
     #Implemented
@@ -394,6 +410,7 @@ class ChargePoint(cp):
         )
 
         response = await self.call(request)
+        await crud.cancel_reservation_db(self.id, reservation_id, response_status=response.status)
         return response
 
     #Implemented
@@ -407,6 +424,7 @@ class ChargePoint(cp):
         )
 
         response = await self.call(request)
+        await crud.reset_db(self.id, type, response_status=response.status)
         return response
 
     #Implemented
@@ -423,6 +441,7 @@ class ChargePoint(cp):
             request.connector_id = connector_id
 
         response = await self.call(request)
+        await crud.trigger_db(self.id, requested_message, connector_id, response_status=response.status)
         return response
 
 
@@ -437,9 +456,10 @@ class ChargePoint(cp):
         )
 
         response = await self.call(request)
+        await crud.unlock_connector_db(self.id, connector_id, response_status=response.status)
         return response
 
-    #Not completed // Fix data types in cs_charging_profiles
+    #Implemented
     async def send_charging_profile(self, connector_id: int, cs_charging_profiles):
         """
         Set a Charging Profile for Charge Point
@@ -449,6 +469,7 @@ class ChargePoint(cp):
             cs_charging_profiles= cs_charging_profiles
         )
         response = await self.call(request)
+        await crud.charging_profile_db(self.id, connector_id, cs_charging_profiles, response_status=response.status)
         return response
 
     #Implemented
@@ -469,8 +490,8 @@ class ChargePoint(cp):
         if stack_level:
             request.stack_level=stack_level
 
-        print(request)
         response = await self.call(request)
+        await crud.clear_charging_profile_db(self.id, connector_id, id, stack_level, charging_profile_purpose, response_status=response.status)
         return response
 
 
@@ -495,6 +516,7 @@ class ChargePoint(cp):
             request.stop_time=stop_time
 
         response = await self.call(request)
+        await crud.get_diagnostics_db(self.id, location, retries, retry_interval, start_time, stop_time, response.file_name)
         return response
 
     #Implemented
@@ -513,6 +535,7 @@ class ChargePoint(cp):
             request.retry_interval=retry_interval
         
         response = await self.call(request)
+        await crud.update_firmware_db(self.id, location, retrieve_date, retries, retry_interval)
         return response
 
 
@@ -530,4 +553,5 @@ class ChargePoint(cp):
             request.data=data
 
         response = await self.call(request)
+        await crud.op_data_transfer_db(self.id, vendor_id, message_id, data, response_data=response.data, response_status=response.status)
         return response
