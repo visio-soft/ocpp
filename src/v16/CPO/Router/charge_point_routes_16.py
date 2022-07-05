@@ -56,14 +56,14 @@ async def remote_stop(charge_point_id: str, transaction_id: int, db: Session = D
     Stop a Charging Session
     """
     try:
-        get_response = await cpo(charge_point_id, transaction_id)
+        get_response = await cpo.stop_remote(charge_point_id, transaction_id)
         print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to stop remote charging {charge_point_id}: {e}")
 
 #Done
-@router.put("/chargepoints/{charge_point_id}/configure",
+@router.put("/chargepoints/{charge_point_id}/getconfigure",
     summary="Get configurations from a Charge Point. Specify with Configuration Key to get the value of wanted configuration.")
 async def get_connector_config(charge_point_id:str, key: schemas.ConfigurationKey = None, current_user: schemas.User = Depends(get_current_user)):
     """
@@ -172,7 +172,7 @@ async def trigger_firmware(charge_point_id:str, current_user: schemas.User = Dep
         return(f"Failed to GET Status: {e}")
 
 #Done
-@router.post("/chargepoints/{charge_point_id}/diagnostics",
+@router.post("/chargepoints/{charge_point_id}/getdiagnostics",
     summary="Get diagnostics from a Charge Point. Specify the location to which it should be sent to.")
 async def get_diagnostics(charge_point_id:str, request: schemas.Diagnostics, current_user: schemas.User = Depends(get_current_user)):
     """
@@ -240,7 +240,7 @@ async def put_unlock(charge_point_id:str, connector_id: int, current_user: schem
 
 
 #Done
-@router.put("/chargepoints/{charge_point_id}/locallist",
+@router.put("/chargepoints/{charge_point_id}/getlocallist",
     summary="Get the Local Authorization List version of a Charge Point.")
 async def get_local_list(charge_point_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     """
@@ -290,7 +290,7 @@ async def composite_schedule(charge_point_id: str, connector_id: int, duration: 
         return(f"Failed to get charging schedule {charge_point_id}: {e}")
 
 #Done
-@router.put("/chargepoints/{charge_point_id}/connector/{connector_id}/chargingprofile",
+@router.put("/chargepoints/{charge_point_id}/connector/{connector_id}/clearchargingprofile",
     summary="Clear Charging Profile erases a Charging Profile of a Charge Point.")
 async def clear_charging_profile(charge_point_id: str, connector_id:int, request: schemas.ClearChargingProfile,
     current_user: schemas.User = Depends(get_current_user)):

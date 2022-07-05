@@ -156,10 +156,12 @@ class ChargePoint(cp):
             print("Transfer Rejected")
 
         else:
-            print("User Rejected")    
+            print("User Rejected")  
+
+        return response  
 
     async def send_meter_values(self, connector_id: int,  *args, **kwargs):
-        return await self.call(call.MeterValuesPayload(
+        request = call.MeterValuesPayload(
             connector_id=connector_id,
             meter_value= [MeterValue(
                 timestamp= datetime.now().isoformat(), 
@@ -211,7 +213,10 @@ class ChargePoint(cp):
                         phase= 'L1', location= 'Outlet', unit= 'V')
                     ])],
                     transaction_id=1234
-        ))
+        )
+
+        response = await self.call(request)
+        return response
 
     async def send_status_notification(self, connector_id: int, error_code: ChargePointErrorCode = None, status: ChargePointStatus = None, timestamp: str = None,
         info: str = None, vendor_id: str = None, vendor_error_code: str = None):

@@ -73,7 +73,7 @@ class StopTransaction16(Base):
     unit = Column(String)
 
 class ChargePointStatus16(Base):
-    __tablename__ = "charge_point_status_16"
+    __tablename__ = "status_16"
     id = Column(Integer, primary_key=True, index=True)
     charge_point_id = Column(String)
     timestamp = Column(DateTime)

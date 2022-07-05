@@ -41,7 +41,7 @@ async def meter_value_db(charge_point_id: str, connector_id: int, meter_value: l
         timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f')
         sampled_value = list['sampled_value']
         for sample in sampled_value:
-            current_measure = db.query(models.MeterValues16).filter_by(measurand=sample['measurand']).first()
+            current_measure = db.query(models.MeterValues16).filter_by(measurand=sample['measurand'], transaction_id=transaction_id).first()
             if not current_measure:
                 meter = models.MeterValues16(
                     transaction_id=transaction_id,
@@ -59,7 +59,6 @@ async def meter_value_db(charge_point_id: str, connector_id: int, meter_value: l
                 db.add(meter)
                 db.commit()
                 db.refresh(meter)
-    return meter
     
 #Done
 async def status_db(charge_point_id:str, connector_id: int, timestamp:str, error_code: str, status: str, info: str = None,
@@ -82,8 +81,8 @@ async def status_db(charge_point_id:str, connector_id: int, timestamp:str, error
 
 #Done
 async def boot_notification_db(charge_point_id: str, charge_point_vendor: str, boot_timestamp:str, charge_point_model: str, heartbeat_interval:int, status:str, 
-charge_point_serial_number: str = None, firmware_version: str = None, charge_box_serial_number: str = None, iccid: str = None, 
-imsi: str = None, meter_serial_number: str = None, meter_type: str = None):
+    charge_point_serial_number: str = None, firmware_version: str = None, charge_box_serial_number: str = None, iccid: str = None, 
+    imsi: str = None, meter_serial_number: str = None, meter_type: str = None):
     boot_timestamp = datetime.strptime(boot_timestamp, '%Y-%m-%dT%H:%M:%S.%f')
     boot = models.ChargePoint16(
         charge_point_id=charge_point_id,
