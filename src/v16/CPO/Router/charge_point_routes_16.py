@@ -84,7 +84,6 @@ async def put_connector_config(charge_point_id: str, key: schemas.ConfigurationK
     """
     try:
         get_response = await cpo.change_configuration(charge_point_id, key, value)
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to change configuration of charge point {charge_point_id}: {e}")
@@ -98,7 +97,6 @@ async def put_connector_config(charge_point_id: str, connector_id: int, type: Av
     """
     try:
         get_response = await cpo.change_availability(charge_point_id, connector_id, type)
-        print(f"The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to change availability of charge point {charge_point_id}: {e}")
@@ -138,7 +136,6 @@ async def trigger_meter(charge_point_id:str, connector_id: int = None, current_u
     """
     try:
         get_response = await cpo.trigger_meter_values(charge_point_id, connector_id)
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to get meter values of charge point {charge_point_id}: {e}")
@@ -166,7 +163,6 @@ async def trigger_firmware(charge_point_id:str, current_user: schemas.User = Dep
     """
     try:
         get_response = await cpo.trigger_frimware_status(charge_point_id)
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to GET Status: {e}")
@@ -279,7 +275,7 @@ async def charging_profile(charge_point_id: str, connector_id: int, request: sch
 #Done
 @router.put("/chargepoints/{charge_point_id}/compositeschedule",
     summary="Get Composite Schedule of a Charge Point. The schedule referes to the Charging Profile schedule.")
-async def composite_schedule(charge_point_id: str, connector_id: int, duration: int, charging_rate_unit: str, current_user: schemas.User = Depends(get_current_user)):
+async def composite_schedule(charge_point_id: str, connector_id: int, duration: int, charging_rate_unit: str = None, current_user: schemas.User = Depends(get_current_user)):
     """
     Get Composite Schedule sends all the Charging Profile Schedule of a Charge Point.
     """

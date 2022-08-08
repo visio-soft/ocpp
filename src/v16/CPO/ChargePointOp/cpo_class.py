@@ -68,7 +68,6 @@ class ChargePoint(cp):
         """
         Recieved "Keep Alive" message
         """
-        print("Recieved a heartbeat from: ")
         response = call_result.HeartbeatPayload(
             current_time=datetime.now().isoformat()
         )
@@ -102,7 +101,7 @@ class ChargePoint(cp):
             expiry_date=response.id_tag_info['expiry_date'], parent_id_tag=response.id_tag_info['parent_id_tag'])
         return response
 
-    #Implemented
+    #Implemented - Tested
     @on(Action.StatusNotification)
     async def on_status_notification(self, connector_id: int, error_code: str, status: str, timestamp: str = None, info: str = None,
     vendor_id: str = None, vendor_error_code: str = None):
@@ -131,12 +130,10 @@ class ChargePoint(cp):
         print("Starting transaction request recieved")
         transaction_id=uuid4().time_low
         authorization_status = AuthorizationStatus.accepted
-        parent_id_tag="ABC123"
-        expiry_date=datetime.now().isoformat()
-        await crud.start_transaction_db(self.id,transaction_id, connector_id, id_tag, meter_start, timestamp, authorization_status, reservation_id, parent_id_tag, expiry_date)
+        await crud.start_transaction_db(self.id,transaction_id, connector_id, id_tag, meter_start, timestamp, authorization_status, reservation_id)
         return call_result.StartTransactionPayload(
             transaction_id=transaction_id,
-            id_tag_info={"parent_id_tag": parent_id_tag, "expiry_date": expiry_date, "status": authorization_status}
+            id_tag_info={"status": authorization_status}
         )
 
     #Implemented
@@ -146,19 +143,16 @@ class ChargePoint(cp):
 
     #Implemented
     @on(Action.StopTransaction)
-    async def on_stop_transaction(self, transaction_id: int, meter_stop: int, timestamp: str, reason: str, id_tag: Dict, transaction_data: List, **kwargs):
+    async def on_stop_transaction(self, transaction_id: int, meter_stop: int, timestamp: str, reason: str, id_tag: Dict, transaction_data: List = None, **kwargs):
         """
         Notified that transaction ended and recieved information about transaction
         """
         print("Stopping transaction request recieved")
-        authorization_status = AuthorizationStatus.accepted
-        parent_id_tag="ABC123"
-        expiry_date=datetime.now().isoformat()
+        authorization_status = "Accepted"
         response = call_result.StopTransactionPayload(
-            id_tag_info={'parent_id_tag': parent_id_tag, 'expiry_date':expiry_date, 'status': authorization_status}
+            id_tag_info={'status': AuthorizationStatus.accepted}
         )
-        await crud.stop_transaction_db(self.id, transaction_id, id_tag, meter_stop, timestamp, reason, transaction_data, authorization_status=authorization_status,
-            expiry_date=expiry_date, parent_id_tag=parent_id_tag)
+        await crud.stop_transaction_db(self.id, transaction_id, id_tag, meter_stop, timestamp, reason, authorization_status=authorization_status, transaction_data=transaction_data)
         return response
 
     #Implemented
@@ -205,7 +199,7 @@ class ChargePoint(cp):
         """
         pass
     
-    #Implemented
+    #Implemented - Tested
     @on(Action.FirmwareStatusNotification)
     async def on_firmware_status(self, status: str):
         """
@@ -222,6 +216,7 @@ class ChargePoint(cp):
         """
         pass
 
+    #Implemented - Tested
     @on(Action.DataTransfer)
     async def on_data_transfer(self, vendor_id:str, message_id:str, data:str):
         response_data = "Drifter"
@@ -270,7 +265,7 @@ class ChargePoint(cp):
         await crud.remote_stop_db(self.id, transaction_id, response_status=response.status)
         return response
 
-    #Implemented
+    #Implemented - Tested
     async def send_change_availability(self, connector_id: int, type: AvailabilityType, **kwargs):
         """
         Change Charge Point availability.
@@ -300,8 +295,8 @@ class ChargePoint(cp):
             request.charging_rate_unit = charging_rate_unit
 
         response = await self.call(request)
-        await crud.get_composite_schedule_db(self.id, connector_id, duration, charging_rate_unit, response.schedule_start, 
-            response.charging_schedule, response.status)
+        await crud.get_composite_schedule_db(charge_point_id=self.id, connector_id=connector_id, duration=duration, charging_rate_unit=charging_rate_unit,
+            schedule_start=response.schedule_start, response_status=response.status, charging_schedule=response.charging_schedule)
         return response
 
     #Implemented
@@ -335,7 +330,7 @@ class ChargePoint(cp):
         await crud.send_local_list(self.id, list_version, update_type, local_authorization_list, response_status=response.status)
         return response
 
-    #Implemented    
+    #Implemented - Tested
     async def send_change_configuration(self, key: str, value: str, **kwargs):
         """
         Change a configuration key in Charge Point
@@ -351,7 +346,7 @@ class ChargePoint(cp):
         return response
 
 
-    #Implemented
+    #Implemented - Tested
     async def send_get_configuration(self, key:list = None, **kwargs):
         """
         Get configuration information from a key in Charge Point
@@ -366,7 +361,7 @@ class ChargePoint(cp):
         await crud.get_configuration_db(self.id, response.configuration_key, response.unknown_key)
         return response
 
-    #Implemented
+    #Implemented - Tested
     async def send_clear_cache(self, **kwargs):
         """
         Clear authorization cache
@@ -378,7 +373,7 @@ class ChargePoint(cp):
         await crud.clear_cache_db(self.id, response_status=response.status)
         return response
 
-    #Implemented
+    #Implemented - Tested
     async def send_reserve_now(self, connector_id: int, expiry_date:str, id_tag:str, reservation_id: int, parent_id_tag: str = None,  **kwargs):
         """
         Reserve a Charge Point for an ID
@@ -399,7 +394,7 @@ class ChargePoint(cp):
         await crud.reservation_db(self.id, connector_id, id_tag, reservation_id, response_status=response.status, expiry_date=expiry_date, parent_id_tag=parent_id_tag)
         return response
 
-    #Implemented
+    #Implemented - Tested
     async def send_cancel_reservation(self, reservation_id: int, **kwargs):
         """
         Cancel reservation
@@ -413,7 +408,7 @@ class ChargePoint(cp):
         await crud.cancel_reservation_db(self.id, reservation_id, response_status=response.status)
         return response
 
-    #Implemented
+    #Implemented - Tested
     async def send_reset(self, type: ResetType):
         """
         Reset Charge Point
@@ -427,7 +422,7 @@ class ChargePoint(cp):
         await crud.reset_db(self.id, type, response_status=response.status)
         return response
 
-    #Implemented
+    #Implemented - Tested
     async def send_trigger(self, requested_message: str, connector_id: int = None, **kwargs):
         print("Sending Trigger Message request")
         """
@@ -472,7 +467,7 @@ class ChargePoint(cp):
         await crud.charging_profile_db(self.id, connector_id, cs_charging_profiles, response_status=response.status)
         return response
 
-    #Implemented
+    #Implemented - Tested
     async def send_clear_charging_profile(self, id: int = None, connector_id: int = None,
     charging_profile_purpose: ChargingProfilePurposeType = None, stack_level: int = None, **kwargs):
         """
@@ -539,7 +534,7 @@ class ChargePoint(cp):
         return response
 
 
-    #Implemented.
+    #Implemented - Tested
     async def send_data_transfer(self, vendor_id: str, message_id: str = None, data: str = None, **kwargs):
         """
         Send data not supported by OCPP

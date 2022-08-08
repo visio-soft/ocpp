@@ -106,12 +106,12 @@ class ChargePoint(cp):
         )
 
     @on(Action.GetCompositeSchedule)
-    def on_get_schedule(self, connector_id, duration, charging_rate_unit):
+    def on_get_schedule(self, connector_id, duration, charging_rate_unit=None):
         return call_result.GetCompositeSchedulePayload(
             status=GetCompositeScheduleStatus.accepted,
             connector_id=1,
-            schedule_start=datetime.now().isoformat(),
-            charging_schedule={"duration": 100, "start_schedule": datetime.now().isoformat(), "charging_rate_unit": ChargingRateUnitType.amps, 
+            schedule_start=datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
+            charging_schedule={"duration": 100, "start_schedule": datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'), "charging_rate_unit": ChargingRateUnitType.amps, 
                 "min_charging_rate": 1, "charging_schedule_period": [{"start_period": 0, "limit": 50, "number_phases": 3}, 
                 {"start_period": 1, "limit": 100, "number_phases": 1}]}
         )
