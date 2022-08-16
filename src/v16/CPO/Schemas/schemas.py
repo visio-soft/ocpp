@@ -14,6 +14,7 @@ class User(BaseModel):
     first_name: str
     last_name: str
     email: str
+    mobile: str
     password: str
 
 class Auth(BaseModel):
