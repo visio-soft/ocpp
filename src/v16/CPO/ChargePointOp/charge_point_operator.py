@@ -2,7 +2,6 @@ import asyncio
 from datetime import datetime
 
 from ocpp.v16 import ChargePoint as cp
-from ocpp.v16.enums import ChargingProfileKindType
 
 from v16.CPO.ChargePointOp.cpo_class import ChargePoint
 
@@ -77,7 +76,7 @@ class CentralSystem(cp):
                 return response
         raise ValueError(f"Charger {id} not connected.")
 
-    async def trigger_status(self, cp_id: str, connector_id: int = None):
+    async def trigger_status(self, cp_id: str, connector_id: int):
         """CPO sends a signal to trigger certain messages of the charge point.
         Tested on hardware"""
         for cp, task in self._chargers.items():

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import List, Optional
 from datetime import datetime
 from ocpp.v16.enums import *
 from ocpp.v16.datatypes import *

@@ -6,8 +6,6 @@ from v16.CPO.ChargePointOp.cpo_class import ChargePoint
 from v16.CPO.Websocket.websocket import WebsocketAdapter
 from v16.CPO.ChargePointOp.charge_point_operator import CentralSystem
 from ocpp.v16.enums import AvailabilityType, ResetType
-from typing import List
-from v16.CPO.CRUD import crud
 from v16.CPO.Auth.oauth2 import get_current_user
 
 
@@ -20,7 +18,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     """
     Function to connect a Charge Point to the CPO through websockets
     """
-    print(websocket.url.path)
     try:
         await websocket.accept(subprotocol="ocpp1.6")
         charge_point_id = websocket.url.path.strip("ocpp/16/api/v16")
@@ -42,7 +39,6 @@ async def remote_start( charge_point_id: str, id_tag: str, connector_id: int = N
     """
     try:
         get_response = await cpo.start_remote(charge_point_id, id_tag, connector_id)
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to start remote charging {charge_point_id}: {e}")
@@ -57,7 +53,6 @@ async def remote_stop(charge_point_id: str, transaction_id: int, db: Session = D
     """
     try:
         get_response = await cpo.stop_remote(charge_point_id, transaction_id)
-        print(f" The response from charger {get_response}")
         return get_response
     except Exception as e:
         return(f"Failed to stop remote charging {charge_point_id}: {e}")
@@ -260,7 +255,7 @@ async def send_local_list(charge_point_id: str, request: schemas.LocalList, db: 
         return(f"Failed to send local list {charge_point_id}: {e}")
 
 #Done
-@router.post("/chargepoints/{charge_point_id}/connector/{connector_id}/chargingprofile",
+@router.post("/chargepoints/{charge_point_id}/connectors/{connector_id}/chargingprofile",
     summary="Set a Charging Profile of a Charge Point. Control the maximum output of a Charge Point during a period of time.")
 async def charging_profile(charge_point_id: str, connector_id: int, request: schemas.SetChargingProfile, current_user: schemas.User = Depends(get_current_user)):
     """
@@ -286,7 +281,7 @@ async def composite_schedule(charge_point_id: str, connector_id: int, duration: 
         return(f"Failed to get charging schedule {charge_point_id}: {e}")
 
 #Done
-@router.put("/chargepoints/{charge_point_id}/connector/{connector_id}/clearchargingprofile",
+@router.put("/chargepoints/{charge_point_id}/connectors/{connector_id}/clearchargingprofile",
     summary="Clear Charging Profile erases a Charging Profile of a Charge Point.")
 async def clear_charging_profile(charge_point_id: str, connector_id:int, request: schemas.ClearChargingProfile,
     current_user: schemas.User = Depends(get_current_user)):

@@ -6,7 +6,6 @@ from resources import models
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from v16.CPO.Hashing.hashing import Hash
-from v16.CPO.Auth.oauth2 import get_current_user
 
 
 router = APIRouter(tags=["Authentication"])
@@ -51,7 +50,7 @@ async def auth(request: OAuth2PasswordRequestForm = Depends(), db: Session = Dep
             detail=f"Invalid Credentials")
 
     access_token = token.create_access_token(
-        data={"sub": user.username}
+        data={"sub": user.email}
     )
     new_token = models.Token(email = user.email, password = user.password, token = access_token)
     db.add(new_token)

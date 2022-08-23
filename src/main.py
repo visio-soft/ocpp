@@ -17,10 +17,10 @@ app201 = FastAPI(title="Drifter World API",version="v201", description="v201 sup
 app.mount("/ocpp/16", app16)
 app.mount("/ocpp/201", app201)
 
-app16.include_router(authentication_16.router, prefix="/api/v16")
-app201.include_router(authentication_201.router, prefix="/api/v201")
-app16.include_router(charge_point_routes_16.router, prefix="/api/v16")
-app201.include_router(charge_point_routes_201.router, prefix="/api/v201")
+app16.include_router(authentication_16.router, prefix="/api")
+app201.include_router(authentication_201.router, prefix="/api")
+app16.include_router(charge_point_routes_16.router, prefix="/api")
+app201.include_router(charge_point_routes_201.router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, debug=True)

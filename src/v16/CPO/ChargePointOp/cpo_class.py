@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Dict, List
-from urllib import response
 from uuid import uuid4
 
 from ocpp.routing import on, after
@@ -32,7 +31,6 @@ class ChargePoint(cp):
         """
         Recieved information of Charge Point (Usually sent upon connecting to CPO)
         """
-        print("A new connection from: ")
         response = call_result.BootNotificationPayload(
             current_time=datetime.now().isoformat(),
             interval=1000,
@@ -88,10 +86,9 @@ class ChargePoint(cp):
         """
         Recieved an authorization request
         """
-        print("ID Token Accepted")
         response = call_result.AuthorizePayload(
             id_tag_info={
-                "expiry_date": datetime.now().isoformat(),
+                "expiry_date": datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
                 "parent_id_tag": 'parent_tag',
 
                 "status": AuthorizationStatus.accepted
@@ -108,7 +105,6 @@ class ChargePoint(cp):
         """
         Recieved an updated Status Notification
         """
-        print("Status Update request recieved")
         await crud.status_db(self.id, connector_id, timestamp, error_code, status, info, vendor_id, vendor_error_code)
         return call_result.StatusNotificationPayload()
 
@@ -127,7 +123,6 @@ class ChargePoint(cp):
         """
         Notified that transaction has started
         """
-        print("Starting transaction request recieved")
         transaction_id=uuid4().time_low
         authorization_status = AuthorizationStatus.accepted
         await crud.start_transaction_db(self.id,transaction_id, connector_id, id_tag, meter_start, timestamp, authorization_status, reservation_id)
@@ -147,7 +142,6 @@ class ChargePoint(cp):
         """
         Notified that transaction ended and recieved information about transaction
         """
-        print("Stopping transaction request recieved")
         authorization_status = "Accepted"
         response = call_result.StopTransactionPayload(
             id_tag_info={'status': AuthorizationStatus.accepted}
@@ -234,7 +228,6 @@ class ChargePoint(cp):
         """
         Start charging remotely
         """
-        print("Start remote transaction request")
         request = call.RemoteStartTransactionPayload(
             id_tag=id_tag
         )
@@ -256,7 +249,6 @@ class ChargePoint(cp):
         """
         Stop charging remotely
         """
-        print("Stop transaction request")
         request = call.RemoteStopTransactionPayload(
             transaction_id=transaction_id
         )
@@ -270,7 +262,6 @@ class ChargePoint(cp):
         """
         Change Charge Point availability.
         """
-        print("Changing Availability request")
         request = call.ChangeAvailabilityPayload(
             connector_id=connector_id,
             type=type
@@ -285,7 +276,6 @@ class ChargePoint(cp):
         """
         Get Charging Profile schedule
         """
-        print("Get Composite Schedule request")
         request = call.GetCompositeSchedulePayload(
             connector_id=connector_id,
             duration=duration
@@ -304,7 +294,6 @@ class ChargePoint(cp):
         """
         Get authorized user list version
         """
-        print("Get Local List request")
         request = call.GetLocalListVersionPayload(
         )
 
@@ -317,7 +306,6 @@ class ChargePoint(cp):
         """
         Send authorized users to Charge Point
         """
-        print("Send Local List request")
         request = call.SendLocalListPayload(
             list_version=list_version,
             update_type=update_type
@@ -327,7 +315,8 @@ class ChargePoint(cp):
             request.local_authorization_list = local_authorization_list
 
         response = await self.call(request)
-        await crud.send_local_list(self.id, list_version, update_type, local_authorization_list, response_status=response.status)
+        print(local_authorization_list)
+        await crud.send_local_list(self.id, list_version, update_type, local_authorization_list = local_authorization_list, response_status=response.status)
         return response
 
     #Implemented - Tested
@@ -335,7 +324,6 @@ class ChargePoint(cp):
         """
         Change a configuration key in Charge Point
         """
-        print("Changing Configuration request")
         request = call.ChangeConfigurationPayload(
             key=key,
             value=value
@@ -351,7 +339,6 @@ class ChargePoint(cp):
         """
         Get configuration information from a key in Charge Point
         """
-        print("Get Configuration request")
         request = call.GetConfigurationPayload()
 
         if key:
@@ -366,7 +353,6 @@ class ChargePoint(cp):
         """
         Clear authorization cache
         """
-        print("Clearing Cache request")
         request = call.ClearCachePayload()
 
         response = await self.call(request)
@@ -399,7 +385,6 @@ class ChargePoint(cp):
         """
         Cancel reservation
         """
-        print("Sending cancel reservation request")
         request = call.CancelReservationPayload(
             reservation_id=reservation_id
         )
@@ -413,7 +398,6 @@ class ChargePoint(cp):
         """
         Reset Charge Point
         """
-        print("Reset Charge Point")
         request = call.ResetPayload(
             type=type
         )
@@ -424,7 +408,6 @@ class ChargePoint(cp):
 
     #Implemented - Tested
     async def send_trigger(self, requested_message: str, connector_id: int = None, **kwargs):
-        print("Sending Trigger Message request")
         """
         Trigger a Charge Point initiated message
         """
@@ -445,7 +428,6 @@ class ChargePoint(cp):
         """
         Unlock connector socket.
         """
-        print("Unlocking Connector")
         request = call.UnlockConnectorPayload(
             connector_id=connector_id
         )
@@ -473,7 +455,6 @@ class ChargePoint(cp):
         """
         Clear Charging Profile in Charge Point.
         """
-        print("Sending clear charging profile request")
         request = call.ClearChargingProfilePayload()
 
         if id:

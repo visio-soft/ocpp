@@ -164,7 +164,7 @@ class ChargePoint(cp):
         request = call.MeterValuesPayload(
             connector_id=connector_id,
             meter_value= [MeterValue(
-                timestamp= datetime.now().isoformat(), 
+                timestamp= datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'), 
                 sampled_value = [
                     SampledValue(
                     value= '200', context= 'Trigger', format= 'SignedData', measurand= 'Current.Export', 
@@ -218,13 +218,12 @@ class ChargePoint(cp):
         response = await self.call(request)
         return response
 
-    async def send_status_notification(self, connector_id: int, error_code: ChargePointErrorCode = None, status: ChargePointStatus = None, timestamp: str = None,
-        info: str = None, vendor_id: str = None, vendor_error_code: str = None):
+    async def send_status_notification(self, connector_id: int):
         return await self.call(call.StatusNotificationPayload(
             connector_id=connector_id,
             error_code=ChargePointErrorCode.no_error,
             status=ChargePointStatus.available,
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
             info="Charge Point is available for use",
             vendor_id="Drifter",
             vendor_error_code="Operational"
@@ -243,7 +242,7 @@ class ChargePoint(cp):
             connector_id=connector_id,
             id_tag=id_tag,
             meter_start=0,
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
             reservation_id=None
         )
         response = await self.call(request)
@@ -253,12 +252,12 @@ class ChargePoint(cp):
     async def send_stop_transaction(self, transaction_id, **kwargs):
         request = call.StopTransactionPayload(
             meter_stop=1000,
-            timestamp=datetime.now().isoformat(),
+            timestamp=datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
             transaction_id=transaction_id,
             reason = Reason.remote,
             id_tag="string",
             transaction_data=[MeterValue(
-                timestamp= datetime.now().isoformat(), 
+                timestamp= datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'), 
                 sampled_value = [
                     SampledValue(value= '200', context= 'Transaction.End', format= 'SignedData', measurand= 'Current.Export', 
                         phase= 'L1', location= 'Outlet', unit= 'A'),
@@ -328,6 +327,7 @@ class ChargePoint(cp):
     @after(Action.TriggerMessage)
     async def after_trigger(self, requested_message, connector_id: int = None, *args, **kwargs):
         if requested_message == "StatusNotification":
+            print(connector_id)
             await self.send_status_notification(connector_id)
         if requested_message == "MeterValues":
             await self.send_meter_values(connector_id)
@@ -379,7 +379,7 @@ class ChargePoint(cp):
 
 async def main():
     async with websockets.connect(
-        'ws://localhost:8000/ocpp/16/api/v16/CP', 
+        'ws://localhost:8000/ocpp/16/api/CP', 
         subprotocols=["ocpp1.6"]
     ) as ws:
 
