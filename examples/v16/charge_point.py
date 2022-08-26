@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import pathlib
+import ssl
 
 try:
     import websockets
@@ -33,13 +35,15 @@ class ChargePoint(cp):
 
 
 async def main():
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    localhost_pem = pathlib.Path(__file__).with_name("cert.pem")
+    ssl_context.load_verify_locations(localhost_pem)
     async with websockets.connect(
-        'ws://localhost:9000/CP_1',
-        subprotocols=['ocpp1.6']
+        'wss://localhost:9000/CP_1',
+        subprotocols=['ocpp1.6'],
+        ssl=ssl_context,
     ) as ws:
-
         cp = ChargePoint('CP_1', ws)
-
         await asyncio.gather(cp.start(), cp.send_boot_notification())
 
 
