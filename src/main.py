@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI
 from resources import models
 from resources.database import engine
@@ -22,5 +23,16 @@ app201.include_router(authentication_201.router, prefix="/api")
 app16.include_router(charge_point_routes_16.router, prefix="/api")
 app201.include_router(charge_point_routes_201.router, prefix="/api")
 
+async def main():
+    config = uvicorn.Config(app, host="0.0.0.0", port=443, debug=True, ssl_keyfile="src\key.pem", ssl_certfile="src\cert.pem")
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, debug=True)
+    try:    
+        asyncio.run(main())
+    except AttributeError:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+        loop.close()

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import pathlib
 
 import websockets
 from ocpp.routing import on, after
@@ -8,6 +9,7 @@ from ocpp.v16 import call, call_result
 from ocpp.v16.datatypes import SampledValue, MeterValue
 from ocpp.v16.enums import *
 from datetime import datetime
+import ssl
 
 logging.basicConfig(level=logging.INFO)
 
@@ -378,9 +380,13 @@ class ChargePoint(cp):
 
 
 async def main():
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    localhost_pem = pathlib.Path(__file__).parents[1].with_name("cert.pem")
+    ssl_context.load_verify_locations(localhost_pem)
     async with websockets.connect(
-        'ws://localhost:8000/ocpp/16/api/CP', 
-        subprotocols=["ocpp1.6"]
+        'wss://localhost:443/ocpp/16/api/CP', 
+        subprotocols=["ocpp1.6"],
+        ssl = ssl_context,
     ) as ws:
 
         cp = ChargePoint('CP', ws)
