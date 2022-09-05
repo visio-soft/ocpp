@@ -20,7 +20,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     """
     try:
         await websocket.accept(subprotocol="ocpp1.6")
-        charge_point_id = websocket.url.path.strip("ocpp/16/api/v16")
+        charge_point_id = websocket.url.path.strip("ocpp/16/api/")
         cp = ChargePoint(charge_point_id, WebsocketAdapter(websocket))
         queue = cpo.register_charger(cp)
         await queue.get()

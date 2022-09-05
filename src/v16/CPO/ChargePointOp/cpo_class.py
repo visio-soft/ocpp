@@ -89,8 +89,6 @@ class ChargePoint(cp):
         response = call_result.AuthorizePayload(
             id_tag_info={
                 "expiry_date": datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                "parent_id_tag": 'parent_tag',
-
                 "status": AuthorizationStatus.accepted
             }
         )
@@ -446,7 +444,8 @@ class ChargePoint(cp):
             cs_charging_profiles= cs_charging_profiles
         )
         response = await self.call(request)
-        await crud.charging_profile_db(self.id, connector_id, cs_charging_profiles, response_status=response.status)
+        print(response)
+        await crud.charging_profile_db(self.id, connector_id, cs_charging_profiles=cs_charging_profiles, response_status=response.status)
         return response
 
     #Implemented - Tested

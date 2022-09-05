@@ -394,7 +394,6 @@ async def get_composite_schedule_db(charge_point_id:str, connector_id:int, durat
                 db.add(schedule)
                 db.commit()
                 db.refresh(schedule)
-                return schedule
 
             else:
                 charging_period=charging_schedule['charging_schedule_period']
@@ -414,7 +413,6 @@ async def get_composite_schedule_db(charge_point_id:str, connector_id:int, durat
                     db.add(schedule)
                     db.commit()
                     db.refresh(schedule)
-                return schedule
         else:
             charging_period=charging_schedule['charging_schedule_period']
             start_schedule = datetime.strptime(charging_schedule['start_schedule'], '%Y-%m-%dT%H:%M:%SZ')
@@ -435,7 +433,6 @@ async def get_composite_schedule_db(charge_point_id:str, connector_id:int, durat
                 db.add(schedule)
                 db.commit()
                 db.refresh(schedule)
-            return schedule
     
     else:
         charging_period=charging_schedule['charging_schedule_period']
@@ -554,7 +551,7 @@ async def get_diagnostics_db(charge_point_id:str, location:str, retries:int, ret
     return diagnostics
 
 #Done - Kolla upp RecurrencyKind Typo !!! Behöver testas
-async def charging_profile_db(charge_point_id:str, connector_id:int, cs_charging_profiles: dict, response_status:str):
+async def charging_profile_db(charge_point_id:str, connector_id:int, cs_charging_profiles: dict, response_status:str=None):
     charging_schedule = cs_charging_profiles.charging_schedule
     timestamp=datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
     timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')

@@ -24,6 +24,7 @@ app16.include_router(charge_point_routes_16.router, prefix="/api")
 app201.include_router(charge_point_routes_201.router, prefix="/api")
 
 async def main():
+    #Add , ssl_keyfile="src\key.pem", ssl_certfile="src\cert.pem" to config function to add https
     config = uvicorn.Config(app, host="0.0.0.0", port=443, debug=True, ssl_keyfile="src\key.pem", ssl_certfile="src\cert.pem")
     server = uvicorn.Server(config)
     await server.serve()
